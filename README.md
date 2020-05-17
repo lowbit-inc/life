@@ -17,6 +17,7 @@ ___
 - [ ] Areas and Responsibilities
 - [ ] Contexts
 - [ ] Inbox
+- [ ] Mind Maps
 - [ ] Next Actions (Task, Event and Habit)
 - [ ] Projects
 - [ ] Recurring Items (this one is tough)
