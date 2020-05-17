@@ -3,30 +3,35 @@
 > Lowbit Planner
 ___
 
-## Inspirations
+## The Idea
+
+### Inspirations
 
 - Bullet Journal
 - GTD (*Getting Things Done*) by *David Allen*
 - Mini-Habits
-- Pomodoro Techinique
+- Pomodoro Technique
 
-## Must-Have
+### Must-Have
 
-- An Inbox
+- Inbox
 - Next Actions (Task, Event and Habit)
+- Recurring Items (this one is tough)
 
-## Clients
+## The Project
 
-- [ ] **cli**
-- [ ] iOS
-- [ ] macOS
-- [ ] pebble
-- [ ] tvOS
-- [ ] watchOS
-- [ ] **web**
-
-## Architecture
+### Architecture
 
 - [ ] Database
 - [ ] Backend (REST API)
 - [ ] Frontend (Web)
+
+### Clients
+
+- [ ] **CLI**
+- [ ] iOS
+- [ ] macOS
+- [ ] Pebble
+- [ ] tvOS
+- [ ] watchOS
+- [ ] **Web**
