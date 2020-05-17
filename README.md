@@ -1,6 +1,6 @@
-# planner
+# Lowbit Planner
 
-> Lowbit Planner
+> The Complete Digital Life Organizer
 ___
 
 ## The Idea
@@ -14,9 +14,13 @@ ___
 
 ### Must-Have
 
-- Inbox
-- Next Actions (Task, Event and Habit)
-- Recurring Items (this one is tough)
+- [ ] Areas and Responsibilities
+- [ ] Contexts
+- [ ] Inbox
+- [ ] Next Actions (Task, Event and Habit)
+- [ ] Projects
+- [ ] Recurring Items (this one is tough)
+- [ ] Separated **Plan** and **Do** sections
 
 ## The Project
 
