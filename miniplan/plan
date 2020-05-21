@@ -62,6 +62,13 @@ databaseCreate() {
 # Do Mode #
 ###########
 
+doCreateHabit() {
+
+  echo "[H]:d::${thisItemName}" >> "${databaseHabits}"
+  doDeleteItem
+
+}
+
 doCompleteItem() {
 
   echo "[X]:${thisItemName}" >> "${databaseCompleted}"
@@ -145,14 +152,21 @@ doStart() {
 
 }
 
+#########
+# Habit #
+#########
+
+habitList() {
+  echo -e "${colorBold}${colorUnderline}Miniplan - Habits:${colorReset}" ; echo
+  cat ${databaseHabits}
+}
+
 ########
 # Help #
 ########
 
 helpShow() {
 
-  echo -e "${colorBold}${colorUnderline}Help${colorReset}"
-  echo
   echo -e "${colorBold}${colorLightGreen}Item Status:${colorReset}"
   echo -e " ${colorBold}[ ]${colorReset} ${colorDarkGray}- New Item${colorReset}"
   echo -e " ${colorBold}[>]${colorReset} ${colorDarkGray}- Later${colorReset}"
@@ -179,7 +193,19 @@ systemCheckReturnCode() {
 
 }
 
-systemConfigurePath() {
+systemLink() {
+
+  if [ -f /usr/local/bin/plan ]; then
+    logPrint info "The symbolic link already exists"
+  else
+    logPrint info "Creating a symbolic link to this script"
+    logPrint warn "You will be prompted to your 'sudo' password"
+    sudo ln -s `realpath $0` /usr/local/bin/plan  ; systemCheckReturnCode "Symbolic link creation"
+  fi
+
+}
+
+systemPath() {
 
   echo "export PATH=${PATH}:$(dirname $(realpath $0))"
 
@@ -273,7 +299,7 @@ logTest() {
 syntaxShow() {
 
   echo
-  echo -e "${colorBold}${colorLightGreen}Syntax:${colorReset}"
+  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}    ${colorDim}- Adds a new item${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}completed${colorReset}        ${colorDim}- List last completed items${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}decide${colorReset}${colorReset} ${colorDarkGray}[${colorLightRed}--reset${colorDarkGray}] ${colorReset}${colorDim}- Enter the 'Decide' mode${colorReset}"
@@ -285,7 +311,10 @@ syntaxShow() {
   echo
   echo -e "${colorBold}${colorLightGreen}Other:${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--install${colorReset}        ${colorDim}- Installs the executable${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--link${colorReset}           ${colorDim}- Create a link to this script in '/usr/local/bin'${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--path${colorReset}           ${colorDim}- Helper to configure the PATH env var${colorReset}"
+  echo
+
 
 }
 
@@ -320,8 +349,13 @@ case ${usrMode} in
     logPrint debug "Mode => do"
     doStart
     ;;
+  "habits")
+    logPrint debug "Mode => habits"
+    habitList
+    ;;
   "help")
     logPrint debug "Mode => help"
+    syntaxShow
     helpShow
     exit 0
     ;;
@@ -330,12 +364,15 @@ case ${usrMode} in
     logPrint debug "Mode => list"
     itemList
     ;;
+  "--link")
+    logPrint debug "Mode => link"
+    systemLink
+    ;;
   "--path")
-    systemConfigurePath
+    systemPath
     ;;
   *)
-    logPrint debug "Unknown User Argument => ${usrMode}"
-    syntaxShow
+    logPrint error "Unknown option '${usrMode}'"
     ;;
 
 esac
