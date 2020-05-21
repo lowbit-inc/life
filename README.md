@@ -21,7 +21,8 @@ ___
 - [ ] Next Actions (Task, Event and Habit)
 - [ ] Projects
 - [ ] Recurring Items (this one is tough)
-- [ ] Separated **Plan** and **Do** sections
+- [ ] Reviews
+- [ ] Separated **Plan** and **Do** modes
 
 ## The Project
 
