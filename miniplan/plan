@@ -60,6 +60,16 @@ helpShow() {
 
 }
 
+##########
+# System #
+##########
+
+systemConfigurePath() {
+
+  echo "export PATH=${PATH}:${PWD}"
+
+}
+
 ########
 # Item #
 ########
@@ -158,7 +168,7 @@ planDo() {
   echo -e "${colorDim}Next Item:${colorReset}"
   echo -e "\e[1m[ ]\e[0m \e[93mMinha primeira tarefa\e[0m"
   echo
-  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}d${colorReset}one ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}p${colorReset}roject ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit"
+  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}d${colorReset}one ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}p${colorReset}roject ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew"
   echo
   read -p "Choice => " usrChoice
 
@@ -176,6 +186,9 @@ syntaxShow() {
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}list${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}do${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Other:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--configure-path${colorReset}"
 
 }
 
@@ -193,16 +206,16 @@ else
   exit 0
 fi
 
-databaseCheckIfExists
-
 case ${usrMode} in
 
   "add")
+    databaseCheckIfExists
     shift
     logPrint debug "Mode => add"
     itemAdd "${@}"
     ;;
   "do")
+    databaseCheckIfExists
     logPrint debug "Mode => do"
     planDo
     ;;
@@ -212,8 +225,12 @@ case ${usrMode} in
     exit 0
     ;;
   "list")
+    databaseCheckIfExists
     logPrint debug "Mode => list"
     itemList
+    ;;
+  "--configure-path")
+    systemConfigurePath
     ;;
   *)
     logPrint debug "Unknown User Argument => ${usrMode}"
