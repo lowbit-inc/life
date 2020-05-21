@@ -24,6 +24,15 @@ colorLightBlue="\e[94m"
 colorLightMagenta="\e[95m"
 colorLightCyan="\e[96m"
 
+#############
+# Completed #
+#############
+
+completedList() {
+  echo -e "${colorBold}${colorUnderline}Miniplan - Completed:${colorReset} ${colorDarkGray}(10 last)${colorReset}" ; echo
+  echo -e "$(tail -n 10 ${databaseCompleted})"
+}
+
 ############
 # Database #
 ############
@@ -47,6 +56,93 @@ databaseCreate() {
   touch "${databaseItems}"      ; systemCheckReturnCode "Initializing Items database"
   touch "${databaseHabits}"     ; systemCheckReturnCode "Initializing Habits database"
   touch "${databaseCompleted}"  ; systemCheckReturnCode "Initializing Completed database"
+}
+
+###########
+# Do Mode #
+###########
+
+doCompleteItem() {
+
+  echo "[X]:${thisItemName}" >> "${databaseCompleted}"
+  doDeleteItem
+
+}
+
+doDeleteItem() {
+
+  sed -i .bkp '1d' "${databaseItems}"
+
+}
+
+doDraw() {
+
+  thisItemsCount=`itemCount`
+  thisItem=`head -n1 ${databaseItems}`
+  thisItemStatus=`echo ${thisItem} | cut -d: -f1`
+  thisItemName=`echo ${thisItem} | cut -d: -f3-`
+
+  clear
+
+  echo -e "${colorBold}${colorUnderline}Miniplan${colorReset} (${colorBold}${colorLightRed}Do!${colorReset})"
+  echo
+  echo -e "${colorDim}Pending Items: ${colorReset}${colorBold}${colorLightGreen}${thisItemsCount}${colorReset}"
+  echo
+  echo -e "${colorDim}Next Item:${colorReset}"
+  echo -e "${colorBold}${thisItemStatus}${colorReset} ${colorLightYellow}${thisItemName}${colorReset}"
+  echo
+  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}c${colorReset}omplete ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}elete ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew ${colorDim}|${colorReset} ${colorUnderline}q${colorReset}uit"
+  echo
+
+}
+
+doNewItem() {
+  clear
+  read -p "New item name => " usrNewItemName
+  itemAdd "${usrNewItemName}"
+
+}
+
+doSkipItem() {
+
+  echo "[>]:${thisItemPriority}:${thisItemName}" >> "${databaseItems}"
+  doDeleteItem
+
+}
+
+doStart() {
+
+  while [ "${usrChoice}" != "q" ]; do
+    doDraw
+    read -p "Choice => " usrChoice
+
+    case "${usrChoice}" in
+  
+      "c"|"complete")
+        doCompleteItem
+        ;;
+      "l"|"later")
+        doSkipItem
+        ;;
+      "h"|"habit")
+        doCreateHabit
+        ;;
+      "d"|"delete")
+        doDeleteItem
+        ;;
+      "n"|"new")
+        doNewItem
+        ;;
+      "q"|"quit")
+        break
+        ;;
+
+    esac
+  
+  done
+
+  logPrint info "Thank you for using Miniplan"
+
 }
 
 ########
@@ -123,7 +219,7 @@ itemCount() {
 }
 
 itemList() {
-  echo -e "${colorBold}${colorUnderline}Miniplan List:${colorReset} ${colorDarkGray}(10 first)${colorReset}" ; echo
+  echo -e "${colorBold}${colorUnderline}Miniplan - List:${colorReset} ${colorDarkGray}(10 first)${colorReset}" ; echo
   echo -e "$(head -n 10 ${databaseItems})"
 }
 
@@ -170,72 +266,6 @@ logTest() {
   logPrint user "Test message"
 }
 
-########
-# Plan #
-########
-
-planDeleteItem() {
-
-  sed -i .bkp '1d' "${databaseItems}"
-
-}
-
-planDraw() {
-
-  thisItemsCount=`itemCount`
-  thisItem=`head -n1 ${databaseItems}`
-  thisItemStatus=`echo ${thisItem} | cut -d: -f1`
-  thisItemName=`echo ${thisItem} | cut -d: -f3`
-
-  clear
-
-  echo -e "${colorBold}${colorUnderline}Lowbit Planner - Miniplan${colorReset} (${colorBold}${colorLightRed}Do!${colorReset})"
-  echo
-  echo -e "${colorDim}Pending Items: ${colorReset}${colorBold}${colorLightGreen}${thisItemsCount}${colorReset}"
-  echo
-  echo -e "${colorDim}Next Item:${colorReset}"
-  echo -e "${colorBold}${thisItemStatus}${colorReset} ${colorLightYellow}${thisItemName}${colorReset}"
-  echo
-  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}c${colorReset}omplete ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}elete ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew ${colorDim}|${colorReset} ${colorUnderline}q${colorReset}uit"
-  echo
-
-}
-
-planDo() {
-
-  while [ "${usrChoice}" != "q" ]; do
-    planDraw
-    read -p "Choice => " usrChoice
-
-    case "${usrChoice}" in
-  
-      "c"|"complete")
-        planCompleteItem
-        ;;
-      "l"|"later")
-        planSkipItem
-        ;;
-      "h"|"habit")
-        planCreateHabit
-        ;;
-      "d"|"delete")
-        planDeleteItem
-        ;;
-      "n"|"new")
-        planNewItem
-        ;;
-      "q"|"quit")
-        break
-        ;;
-
-    esac
-  
-  done
-
-  logPrint info "Thank you for using Miniplan"
-
-}
-
 ##########
 # Syntax #
 ##########
@@ -268,7 +298,7 @@ syntaxShow() {
 if [ "${1}" ]; then
   usrMode="${1}"
 else
-  echo -e "${colorBold}${colorUnderline}Lowbit Planner - Miniplan${colorReset}"
+  echo -e "${colorBold}${colorUnderline}Miniplan${colorReset}"
   syntaxShow
   exit 0
 fi
@@ -281,10 +311,14 @@ case ${usrMode} in
     logPrint debug "Mode => add"
     itemAdd "${@}"
     ;;
+  "completed")
+    logPrint debug "Mode => completed"
+    completedList
+    ;;
   "do")
     databaseCheckIfExists
     logPrint debug "Mode => do"
-    planDo
+    doStart
     ;;
   "help")
     logPrint debug "Mode => help"
