@@ -59,9 +59,9 @@ helpShow() {
   echo
   echo -e "${colorBold}${colorLightGreen}Item Status:${colorReset}"
   echo -e " ${colorBold}[ ]${colorReset} ${colorDarkGray}- New Item${colorReset}"
-  echo -e " ${colorBold}[>]${colorReset} ${colorDarkGray}- Finish Later${colorReset}"
-  echo -e " ${colorBold}[H]${colorReset} ${colorDarkGray}- Mini Habit${colorReset}"
-  echo -e " ${colorBold}[P]${colorReset} ${colorDarkGray}- Project${colorReset}"
+  echo -e " ${colorBold}[>]${colorReset} ${colorDarkGray}- Later${colorReset}"
+  echo -e " ${colorBold}[H]${colorReset} ${colorDarkGray}- Habit${colorReset}"
+  echo -e " ${colorBold}[P]${colorReset} ${colorDarkGray}- Part of a project${colorReset}"
   echo -e " ${colorBold}[X]${colorReset} ${colorDarkGray}- Done${colorReset}"
 
 }
@@ -174,7 +174,13 @@ logTest() {
 # Plan #
 ########
 
-planDo() {
+planDeleteItem() {
+
+  sed -i .bkp '1d' "${databaseItems}"
+
+}
+
+planDraw() {
 
   thisItemsCount=`itemCount`
   thisItem=`head -n1 ${databaseItems}`
@@ -190,9 +196,43 @@ planDo() {
   echo -e "${colorDim}Next Item:${colorReset}"
   echo -e "${colorBold}${thisItemStatus}${colorReset} ${colorLightYellow}${thisItemName}${colorReset}"
   echo
-  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}c${colorReset}omplete ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}elete ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew"
+  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}c${colorReset}omplete ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}elete ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew ${colorDim}|${colorReset} ${colorUnderline}q${colorReset}uit"
   echo
-  read -p "Choice => " usrChoice
+
+}
+
+planDo() {
+
+  while [ "${usrChoice}" != "q" ]; do
+    planDraw
+    read -p "Choice => " usrChoice
+
+    case "${usrChoice}" in
+  
+      "c"|"complete")
+        planCompleteItem
+        ;;
+      "l"|"later")
+        planSkipItem
+        ;;
+      "h"|"habit")
+        planCreateHabit
+        ;;
+      "d"|"delete")
+        planDeleteItem
+        ;;
+      "n"|"new")
+        planNewItem
+        ;;
+      "q"|"quit")
+        break
+        ;;
+
+    esac
+  
+  done
+
+  logPrint info "Thank you for using Miniplan"
 
 }
 
@@ -211,8 +251,10 @@ syntaxShow() {
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}habits${colorReset}           ${colorDim}- List all logged habits${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}help${colorReset}             ${colorDim}- Prints a help message${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}list${colorReset}             ${colorDim}- List next items${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}sync${colorReset}             ${colorDim}- Syncs the database using Git${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Other:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--install${colorReset}        ${colorDim}- Installs the executable${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--path${colorReset}           ${colorDim}- Helper to configure the PATH env var${colorReset}"
 
 }
