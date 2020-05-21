@@ -1,0 +1,223 @@
+# !/bin/bash
+
+#########
+# Color #
+#########
+
+colorReset="\e[0m"
+colorBold="\e[1m"
+colorDim="\e[2m"
+colorUnderline="\e[4m"
+colorBlink="\e[5m"
+colorRed="\e[31m"
+colorGreen="\e[32m"
+colorYellow="\e[33m"
+colorBlue="\e[34m"
+colorMagenta="\e[35m"
+colorCyan="\e[36m"
+colorLightGray="\e[37m"
+colorDarkGray="\e[90m"
+colorLightRed="\e[91m"
+colorLightGreen="\e[92m"
+colorLightYellow="\e[93m"
+colorLightBlue="\e[94m"
+colorLightMagenta="\e[95m"
+colorLightCyan="\e[96m"
+
+############
+# Database #
+############
+
+databasePath="${HOME}/.db.plan"
+
+databaseCheckIfExists() {
+  if [ -f "${databasePath}" ]; then
+    logPrint debug "Database file found at => ${databasePath}"
+  else
+    logPrint info "Database file not found - Creating one at [${databasePath}]"
+    databaseCreate
+  fi
+}
+
+databaseCreate() {
+  touch "${databasePath}"
+}
+
+########
+# Help #
+########
+
+helpShow() {
+
+  echo -e "${colorBold}${colorUnderline}Help${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Item Status:${colorReset}"
+  echo -e " ${colorBold}[ ]${colorReset} ${colorDarkGray}- New Item${colorReset}"
+  echo -e " ${colorBold}[>]${colorReset} ${colorDarkGray}- Finish Later${colorReset}"
+  echo -e " ${colorBold}[H]${colorReset} ${colorDarkGray}- Mini Habit${colorReset}"
+  echo -e " ${colorBold}[P]${colorReset} ${colorDarkGray}- Project${colorReset}"
+  echo -e " ${colorBold}[X]${colorReset} ${colorDarkGray}- Done${colorReset}"
+
+}
+
+########
+# Item #
+########
+
+itemAdd() {
+
+  if [ "${1}" ]; then
+    thisItemName="${@}"
+  else
+    logPrint error "You need to inform the item name"
+    exit 1
+  fi
+
+  logPrint debug "Adding item => ${thisItemName}"
+
+  echo "${colorBold}[ ]${colorReset} ${colorLightYellow}${thisItemName}${colorReset}" >> "${databasePath}"
+  thisRC=$?
+
+  if [ $thisRC -eq 0 ]; then
+    logPrint info "Added item [${thisItemName}]"
+  else
+    logPrint error "Failed to add item [${thisItemName}] to the database"
+    exit 1
+  fi
+
+}
+
+itemCount() {
+
+  grep -v "[X]" "${databasePath}" | wc -l | tr -d ' '
+
+}
+
+itemList() {
+  echo -e "${colorBold}${colorUnderline}Miniplan List:${colorReset} ${colorDarkGray}(10 first)${colorReset}" ; echo
+  echo -e "$(head -n 10 ${databasePath})"
+}
+
+#######
+# Log #
+#######
+
+logPrint() {
+  thisLogLevel="${1}"
+  thisLogString="${2}"
+
+  case $thisLogLevel in
+
+    "debug")
+      thisLogLevelColored="${colorDarkGray}debug${colorReset}"
+      ;;
+    "error")
+      thisLogLevelColored="${colorLightRed}error${colorReset}"
+      ;;
+    "info")
+      thisLogLevelColored="${colorLightGreen}info ${colorReset}"
+      ;;
+    "user")
+      thisLogLevelColored="${colorBlink}${colorLightMagenta}user ${colorReset}"
+      ;;
+    "warn")
+      thisLogLevelColored="${colorLightYellow}warn ${colorReset}"
+      ;;
+
+    *)
+      echo "Error: Wrong log type"
+      ;;
+
+  esac
+
+  echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${thisLogLevelColored}${colorDarkGray}]${colorReset} ${thisLogString}"
+}
+
+logTest() {
+  logPrint debug "Test message"
+  logPrint info "Test message"
+  logPrint warn "Test message"
+  logPrint error "Test message"
+  logPrint user "Test message"
+}
+
+########
+# Plan #
+########
+
+planDo() {
+
+  thisItemCount=`itemCount`
+
+  clear
+
+  echo -e "${colorBold}${colorUnderline}Lowbit Planner - Miniplan${colorReset} (${colorBold}${colorLightRed}Do!${colorReset})"
+  echo
+  echo -e "${colorDim}Pending Items: ${colorReset}${colorBold}${colorLightGreen}${thisItemCount}${colorReset}"
+  echo
+  echo -e "${colorDim}Next Item:${colorReset}"
+  echo -e "\e[1m[ ]\e[0m \e[93mMinha primeira tarefa\e[0m"
+  echo
+  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}d${colorReset}one ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}p${colorReset}roject ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit"
+  echo
+  read -p "Choice => " usrChoice
+
+}
+
+##########
+# Syntax #
+##########
+
+syntaxShow() {
+
+  echo
+  echo -e "${colorBold}${colorLightGreen}Syntax:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}help${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}list${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}do${colorReset}"
+
+}
+
+##########
+# Script #
+##########
+
+# Initializing
+
+if [ "${1}" ]; then
+  usrMode="${1}"
+else
+  echo -e "${colorBold}${colorUnderline}Lowbit Planner - Miniplan${colorReset}"
+  syntaxShow
+  exit 0
+fi
+
+databaseCheckIfExists
+
+case ${usrMode} in
+
+  "add")
+    shift
+    logPrint debug "Mode => add"
+    itemAdd "${@}"
+    ;;
+  "do")
+    logPrint debug "Mode => do"
+    planDo
+    ;;
+  "help")
+    logPrint debug "Mode => help"
+    helpShow
+    exit 0
+    ;;
+  "list")
+    logPrint debug "Mode => list"
+    itemList
+    ;;
+  *)
+    logPrint debug "Unknown User Argument => ${usrMode}"
+    syntaxShow
+    ;;
+
+esac
