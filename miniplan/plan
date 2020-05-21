@@ -28,19 +28,25 @@ colorLightCyan="\e[96m"
 # Database #
 ############
 
-databasePath="${HOME}/.db.plan"
+databasePath="${HOME}/.miniplan"
+databaseCompleted="${databasePath}/completed.db"
+databaseHabits="${databasePath}/habits.db"
+databaseItems="${databasePath}/items.db"
 
 databaseCheckIfExists() {
-  if [ -f "${databasePath}" ]; then
-    logPrint debug "Database file found at => ${databasePath}"
+  if [ -f "${databaseItems}" ]; then
+    logPrint debug "Database found at => ${databasePath}"
   else
-    logPrint info "Database file not found - Creating one at [${databasePath}]"
+    logPrint info "Database not found - Creating one at [${databasePath}]"
     databaseCreate
   fi
 }
 
 databaseCreate() {
-  touch "${databasePath}"
+  mkdir -p "${databasePath}"    ; systemCheckReturnCode "Creating database structure"
+  touch "${databaseItems}"      ; systemCheckReturnCode "Initializing Items database"
+  touch "${databaseHabits}"     ; systemCheckReturnCode "Initializing Habits database"
+  touch "${databaseCompleted}"  ; systemCheckReturnCode "Initializing Completed database"
 }
 
 ########
@@ -64,6 +70,19 @@ helpShow() {
 # System #
 ##########
 
+systemCheckReturnCode() {
+
+  thisRC=$?
+  thisString=$1
+
+  if [ $thisRC -eq 0 ]; then
+    logPrint info "${thisString} - OK"
+  else
+    logPrint error "${thisString} - Failed"
+  fi
+
+}
+
 systemConfigurePath() {
 
   echo "export PATH=${PATH}:$(dirname $(realpath $0))"
@@ -85,7 +104,7 @@ itemAdd() {
 
   logPrint debug "Adding item => ${thisItemName}"
 
-  echo "${colorBold}[ ]${colorReset} ${colorLightYellow}${thisItemName}${colorReset}" >> "${databasePath}"
+  echo "[ ]:0:${thisItemName}" >> "${databaseItems}"
   thisRC=$?
 
   if [ $thisRC -eq 0 ]; then
@@ -99,13 +118,13 @@ itemAdd() {
 
 itemCount() {
 
-  grep -v "[X]" "${databasePath}" | wc -l | tr -d ' '
+  cat "${databaseItems}" | wc -l | tr -d ' '
 
 }
 
 itemList() {
   echo -e "${colorBold}${colorUnderline}Miniplan List:${colorReset} ${colorDarkGray}(10 first)${colorReset}" ; echo
-  echo -e "$(head -n 10 ${databasePath})"
+  echo -e "$(head -n 10 ${databaseItems})"
 }
 
 #######
@@ -157,18 +176,21 @@ logTest() {
 
 planDo() {
 
-  thisItemCount=`itemCount`
+  thisItemsCount=`itemCount`
+  thisItem=`head -n1 ${databaseItems}`
+  thisItemStatus=`echo ${thisItem} | cut -d: -f1`
+  thisItemName=`echo ${thisItem} | cut -d: -f3`
 
   clear
 
   echo -e "${colorBold}${colorUnderline}Lowbit Planner - Miniplan${colorReset} (${colorBold}${colorLightRed}Do!${colorReset})"
   echo
-  echo -e "${colorDim}Pending Items: ${colorReset}${colorBold}${colorLightGreen}${thisItemCount}${colorReset}"
+  echo -e "${colorDim}Pending Items: ${colorReset}${colorBold}${colorLightGreen}${thisItemsCount}${colorReset}"
   echo
   echo -e "${colorDim}Next Item:${colorReset}"
-  echo -e "\e[1m[ ]\e[0m \e[93mMinha primeira tarefa\e[0m"
+  echo -e "${colorBold}${thisItemStatus}${colorReset} ${colorLightYellow}${thisItemName}${colorReset}"
   echo
-  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}d${colorReset}one ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}p${colorReset}roject ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew"
+  echo -e "${colorDim}Options:${colorReset} ${colorUnderline}c${colorReset}omplete ${colorDim}|${colorReset} ${colorUnderline}l${colorReset}ater ${colorDim}|${colorReset} ${colorUnderline}h${colorReset}abit ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}elete ${colorDim}|${colorReset} ${colorUnderline}n${colorReset}ew"
   echo
   read -p "Choice => " usrChoice
 
@@ -182,13 +204,16 @@ syntaxShow() {
 
   echo
   echo -e "${colorBold}${colorLightGreen}Syntax:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}help${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}list${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}do${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}    ${colorDim}- Adds a new item${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}completed${colorReset}        ${colorDim}- List last completed items${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}decide${colorReset}${colorReset} ${colorDarkGray}[${colorLightRed}--reset${colorDarkGray}] ${colorReset}${colorDim}- Enter the 'Decide' mode${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}do${colorReset}               ${colorDim}- Enter the 'Do' mode${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}habits${colorReset}           ${colorDim}- List all logged habits${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}help${colorReset}             ${colorDim}- Prints a help message${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}list${colorReset}             ${colorDim}- List next items${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Other:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--configure-path${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--path${colorReset}           ${colorDim}- Helper to configure the PATH env var${colorReset}"
 
 }
 
@@ -229,7 +254,7 @@ case ${usrMode} in
     logPrint debug "Mode => list"
     itemList
     ;;
-  "--configure-path")
+  "--path")
     systemConfigurePath
     ;;
   *)
