@@ -1,4 +1,4 @@
-# !/bin/bash
+#!/usr/bin/env bash
 
 #########
 # Color #
@@ -37,13 +37,13 @@ completedList() {
 # Database #
 ############
 
-databasePath="${HOME}/.miniplan"
+databasePath="${HOME}/.lowbit-planner"
 databaseCompleted="${databasePath}/completed.db"
 databaseHabits="${databasePath}/habits.db"
 databaseItems="${databasePath}/items.db"
 
 databaseCheckIfExists() {
-  if [ -f "${databaseItems}" ]; then
+  if [ -d "${databasePath}" ]; then
     logPrint debug "Database found at => ${databasePath}"
   else
     logPrint info "Database not found - Creating one at [${databasePath}]"
@@ -52,10 +52,10 @@ databaseCheckIfExists() {
 }
 
 databaseCreate() {
-  mkdir -p "${databasePath}"    ; systemCheckReturnCode "Creating database structure"
-  touch "${databaseItems}"      ; systemCheckReturnCode "Initializing Items database"
-  touch "${databaseHabits}"     ; systemCheckReturnCode "Initializing Habits database"
-  touch "${databaseCompleted}"  ; systemCheckReturnCode "Initializing Completed database"
+  mkdir -p "${databasePath}"    ; systemCheckReturnCode "Initializing database"
+  touch "${databaseItems}"      ; systemCheckReturnCode "Initializing table: items"
+  touch "${databaseHabits}"     ; systemCheckReturnCode "Initializing table: habits"
+  touch "${databaseCompleted}"  ; systemCheckReturnCode "Initializing table: completed"
 }
 
 ###########
@@ -168,11 +168,11 @@ habitList() {
 helpShow() {
 
   echo -e "${colorBold}${colorLightGreen}Item Status:${colorReset}"
-  echo -e " ${colorBold}[ ]${colorReset} ${colorDarkGray}- New Item${colorReset}"
-  echo -e " ${colorBold}[>]${colorReset} ${colorDarkGray}- Later${colorReset}"
-  echo -e " ${colorBold}[H]${colorReset} ${colorDarkGray}- Habit${colorReset}"
-  echo -e " ${colorBold}[P]${colorReset} ${colorDarkGray}- Part of a project${colorReset}"
-  echo -e " ${colorBold}[X]${colorReset} ${colorDarkGray}- Done${colorReset}"
+  echo -e "  ${colorBold}[ ]${colorReset} ${colorDim}- New Item${colorReset}"
+  echo -e "  ${colorBold}[>]${colorReset} ${colorDim}- Later${colorReset}"
+  echo -e "  ${colorBold}[H]${colorReset} ${colorDim}- Habit${colorReset}"
+  echo -e "  ${colorBold}[P]${colorReset} ${colorDim}- Part of a project${colorReset}"
+  echo -e "  ${colorBold}[X]${colorReset} ${colorDim}- Done${colorReset}"
 
 }
 
@@ -195,11 +195,11 @@ systemCheckReturnCode() {
 
 systemLink() {
 
-  if [ -f /usr/local/bin/plan ]; then
+  if [ -h /usr/local/bin/plan ]; then
     logPrint info "The symbolic link already exists"
   else
     logPrint info "Creating a symbolic link to this script"
-    logPrint warn "You will be prompted to your 'sudo' password"
+    logPrint user "You will be prompted to your 'sudo' password"
     sudo ln -s `realpath $0` /usr/local/bin/plan  ; systemCheckReturnCode "Symbolic link creation"
   fi
 
@@ -298,6 +298,10 @@ logTest() {
 
 syntaxShow() {
 
+  echo -e "${colorBold}${colorUnderline}Lowbit Planner - Bash Edition${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
+  echo -e "  ${colorBold}`basename $0`${colorReset} ${colorUnderline}${colorLightCyan}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightRed}action${colorReset} ${colorDim}[${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]]${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}    ${colorDim}- Adds a new item${colorReset}"
@@ -314,7 +318,7 @@ syntaxShow() {
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--link${colorReset}           ${colorDim}- Create a link to this script in '/usr/local/bin'${colorReset}"
   echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--path${colorReset}           ${colorDim}- Helper to configure the PATH env var${colorReset}"
   echo
-
+  exit 0
 
 }
 
@@ -322,17 +326,13 @@ syntaxShow() {
 # Script #
 ##########
 
-# Initializing
-
-if [ "${1}" ]; then
-  usrMode="${1}"
+if [ $1 ]; then
+  usrCommand=$1
 else
-  echo -e "${colorBold}${colorUnderline}Miniplan${colorReset}"
   syntaxShow
-  exit 0
 fi
 
-case ${usrMode} in
+case ${usrCommand} in
 
   "add")
     databaseCheckIfExists
@@ -372,7 +372,7 @@ case ${usrMode} in
     systemPath
     ;;
   *)
-    logPrint error "Unknown option '${usrMode}'"
+    logPrint error "Unknown option '${usrCommand}'"
     ;;
 
 esac
