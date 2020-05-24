@@ -38,9 +38,9 @@ completedList() {
 ############
 
 databasePath="${HOME}/.lowbit-planner"
-databaseCompleted="${databasePath}/completed.db"
-databaseHabits="${databasePath}/habits.db"
-databaseItems="${databasePath}/items.db"
+databaseTables="
+  inbox
+"
 
 databaseCheckIfExists() {
   if [ -d "${databasePath}" ]; then
@@ -52,10 +52,117 @@ databaseCheckIfExists() {
 }
 
 databaseCreate() {
-  mkdir -p "${databasePath}"    ; systemCheckReturnCode "Initializing database"
-  touch "${databaseItems}"      ; systemCheckReturnCode "Initializing table: items"
-  touch "${databaseHabits}"     ; systemCheckReturnCode "Initializing table: habits"
-  touch "${databaseCompleted}"  ; systemCheckReturnCode "Initializing table: completed"
+
+  # Database (directory)
+  mkdir -p "${databasePath}"    ; systemCheckReturnCode "Initializing database structure" "Error creating database structure"
+
+  # Tables (files)
+  for table in $databaseTables; do
+    touch "${databasePath}/${table}.db" ; systemCheckReturnCode "Initializing table: ${table}" "Failed to initialize table '${table}'"
+  done
+
+}
+
+databaseTableDeleteFirst() {
+
+  logPrint debug "Database => Delete first"
+
+  if [ ! "${1}" ]; then
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  # Assigning the user args
+  thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+
+  sed -i .bkp '1d' "${databasePath}/${thisTable}.db"
+
+}
+
+databaseTableInsert() {
+
+  logPrint debug "Database => Insert"
+
+  if [ ! "${3}" ]; then
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  # Assigning the user args
+  thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+  thisMode="${1}"   ; shift ; logPrint debug "Mode => ${thisMode}"
+  thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
+
+  # Checking if the key must be unique
+  if [[ "${thisMode}" == "unique" ]] && [[ $(grep ":${thisKey}:" "${databasePath}/${thisTable}.db") ]]; then
+
+    logPrint warn "'${thisKey}' already exists on ${thisTable}"
+
+  else
+
+    # Preparing the entry
+    thisEntry=":${thisKey}:"
+
+    # Appending additional/optional fields
+    while [ "${1}" ]; do
+      thisEntry="${thisEntry}${1}:"
+      shift
+    done
+
+    # Adding entry to the table
+    logPrint debug "Entry => ${thisEntry}"
+    echo "${thisEntry}" >> "${databasePath}/${thisTable}.db"
+    systemCheckReturnCode "'${thisKey}' added to ${thisTable}" "Failed to add ${thisKey} to ${thisTable}"
+
+  fi
+
+}
+
+databaseTableSelect() {
+
+  logPrint debug "Database => Select"
+
+  if [ ! "${2}" ]; then
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  # Assigning the user args
+  thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+  thisLimit="${1}"  ; shift ; logPrint debug "Limit => ${thisLimit}"
+  thisPrefix="${1}" ; shift ; logPrint debug "Prefix => ${thisPrefix}"
+  thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
+
+  # Header
+  echo -e "${colorBold}${colorUnderline}${colorLightGreen}${thisTable^}${colorReset}"
+  echo
+
+  # Looping through each entry
+  IFS=$'\n'
+  thisRow=1
+  for entry in $(cat "${databasePath}/${thisTable}.db"); do
+
+    if [ ! ${thisRow} -le ${thisLimit} ]; then
+      break
+    fi
+
+    # Key
+    echo -en "${colorBold}${thisPrefix}`echo "${entry}" | cut -d: -f${thisKey}`${colorReset}"
+
+    # Additional/optional fields
+    unset IFS
+    for field in $1; do
+      echo -n " `echo "${entry}" | cut -d: -f$1`"
+    done
+
+    # New line
+    echo
+
+    # Iterating this row number
+    ((thisRow++))
+
+  done
+
 }
 
 ###########
@@ -176,6 +283,81 @@ helpShow() {
 
 }
 
+#########
+# Inbox #
+#########
+
+inboxAdd() {
+
+  logPrint debug "Inbox Add"
+
+  if [ ! "${1}" ]; then
+    logPrint error "Missing inbox item name"
+    exit 1
+  fi
+
+  thisInboxItemName="${@}"
+
+  databaseTableInsert inbox unique "${thisInboxItemName}"
+
+}
+
+inboxList() {
+
+  logPrint debug "Inbox List"
+
+  databaseTableSelect inbox 10 "- " 2
+
+}
+
+inboxShowUsage() {
+
+  echo -e "${colorBold}Lowbit Planner - Inbox${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` inbox${colorReset} ${colorUnderline}${colorLightRed}action${colorReset}${colorDim} [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Actions:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}item_name${colorReset}    ${colorDim}- Add an item to the inbox${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Delete an item from the inbox${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}             ${colorDim}- List inbox items${colorReset}"
+  echo
+  exit 0
+
+}
+
+inboxParse() {
+
+  logPrint debug "Inbox Parse"
+
+  if [ ! $1 ]; then
+    inboxShowUsage
+  fi
+
+  usrAction=$1
+
+  case ${usrAction} in
+    "add")
+      logPrint debug "Action => ${usrAction}"
+      shift
+      inboxAdd "${@}"
+      ;;
+    "list")
+      logPrint debug "Action => ${usrAction}"
+      shift
+      inboxList
+      ;;
+    "--help"|"-h"|"help")
+      logPrint debug "Action => ${usrAction}"
+      inboxShowUsage
+      ;;
+    *)
+      logPrint error "Unknown action '${usrAction}'"
+      ;;
+  esac
+
+}
+
 ##########
 # System #
 ##########
@@ -183,12 +365,14 @@ helpShow() {
 systemCheckReturnCode() {
 
   thisRC=$?
-  thisString=$1
+  thisStringOK="${1}"
+  thisStringError="${2}"
 
   if [ $thisRC -eq 0 ]; then
-    logPrint info "${thisString} - OK"
+    logPrint info "${thisStringOK}"
   else
-    logPrint error "${thisString} - Failed"
+    logPrint error "${thisStringError}"
+    exit 1
   fi
 
 }
@@ -200,14 +384,8 @@ systemLink() {
   else
     logPrint info "Creating a symbolic link to this script"
     logPrint user "You will be prompted to your 'sudo' password"
-    sudo ln -s `realpath $0` /usr/local/bin/plan  ; systemCheckReturnCode "Symbolic link creation"
+    sudo ln -s `realpath $0` /usr/local/bin/plan  ; systemCheckReturnCode "Symbolic link created" "Failed to create symbolic link"
   fi
-
-}
-
-systemPath() {
-
-  echo "export PATH=${PATH}:$(dirname $(realpath $0))"
 
 }
 
@@ -260,19 +438,21 @@ logPrint() {
   case $thisLogLevel in
 
     "debug")
-      thisLogLevelColored="${colorDarkGray}debug${colorReset}"
+      if [ $DEBUG == "true" ]; then
+        echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorDarkGray}debug${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
+      fi
       ;;
     "error")
-      thisLogLevelColored="${colorLightRed}error${colorReset}"
+      echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorLightRed}error${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
       ;;
     "info")
-      thisLogLevelColored="${colorLightGreen}info ${colorReset}"
+      echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorLightGreen}info ${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
       ;;
     "user")
-      thisLogLevelColored="${colorBlink}${colorLightMagenta}user ${colorReset}"
+      echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorBlink}${colorLightMagenta}user ${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
       ;;
     "warn")
-      thisLogLevelColored="${colorLightYellow}warn ${colorReset}"
+      echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorLightYellow}warn ${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
       ;;
 
     *)
@@ -281,7 +461,6 @@ logPrint() {
 
   esac
 
-  echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${thisLogLevelColored}${colorDarkGray}]${colorReset} ${thisLogString}"
 }
 
 logTest() {
@@ -298,25 +477,29 @@ logTest() {
 
 syntaxShow() {
 
-  echo -e "${colorBold}${colorUnderline}Lowbit Planner - Bash Edition${colorReset}"
+  echo -e "${colorBold}Lowbit Planner - Bash Edition${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
-  echo -e "  ${colorBold}`basename $0`${colorReset} ${colorUnderline}${colorLightCyan}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightRed}action${colorReset} ${colorDim}[${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]]${colorReset}"
+  echo -e "  ${colorBold}`basename $0`${colorReset} ${colorUnderline}${colorLightMagenta}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightRed}action${colorReset}${colorDim}] [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
   echo
-  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorLightYellow}Task name${colorReset}    ${colorDim}- Adds a new item${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}completed${colorReset}        ${colorDim}- List last completed items${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}decide${colorReset}${colorReset} ${colorDarkGray}[${colorLightRed}--reset${colorDarkGray}] ${colorReset}${colorDim}- Enter the 'Decide' mode${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}do${colorReset}               ${colorDim}- Enter the 'Do' mode${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}habits${colorReset}           ${colorDim}- List all logged habits${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}help${colorReset}             ${colorDim}- Prints a help message${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}list${colorReset}             ${colorDim}- List next items${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}sync${colorReset}             ${colorDim}- Syncs the database using Git${colorReset}"
+  echo -e "${colorBold}${colorLightGreen}Quick commands:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Add an item to the inbox${colorReset}"
   echo
-  echo -e "${colorBold}${colorLightGreen}Other:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--install${colorReset}        ${colorDim}- Installs the executable${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--link${colorReset}           ${colorDim}- Create a link to this script in '/usr/local/bin'${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorUnderline}${colorLightMagenta}--path${colorReset}           ${colorDim}- Helper to configure the PATH env var${colorReset}"
+  echo -e "${colorBold}${colorLightGreen}Basic commands:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}event${colorReset}         ${colorDim}- Event operations${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}task${colorReset}          ${colorDim}- Task operations${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Interactive commands:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}decide${colorReset}        ${colorDim}- Start the 'Decision' mode${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}do${colorReset}            ${colorDim}- Start the 'Do' mode${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}System Commands:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}--help${colorReset}        ${colorDim}- Display a help message${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}--install${colorReset}     ${colorDim}- Install this script${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}--link${colorReset}        ${colorDim}- Create a symbolic link to this script${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}--version${colorReset}     ${colorDim}- Display the script version${colorReset}"
   echo
   exit 0
 
@@ -326,50 +509,41 @@ syntaxShow() {
 # Script #
 ##########
 
-if [ $1 ]; then
-  usrCommand=$1
-else
+if [ ! $1 ]; then
   syntaxShow
 fi
 
+usrCommand=$1
+
 case ${usrCommand} in
 
-  "add")
+  # "add")
+  #   logPrint debug "Command => ${usrCommand}"
+  #   databaseCheckIfExists
+  #   shift
+  #   itemAdd "${@}"
+  #   ;;
+  # "do")
+  #   logPrint debug "Command => ${usrCommand}"
+  #   databaseCheckIfExists
+  #   doStart
+  #   ;;
+  # "habit")
+  #   logPrint debug "Command => ${usrCommand}"
+  #   habitList
+  #   ;;
+  "inbox")
     databaseCheckIfExists
-    shift
-    logPrint debug "Mode => add"
-    itemAdd "${@}"
+    logPrint debug "Command => ${usrCommand}"
+    shift ; inboxParse "${@}"
     ;;
-  "completed")
-    logPrint debug "Mode => completed"
-    completedList
-    ;;
-  "do")
-    databaseCheckIfExists
-    logPrint debug "Mode => do"
-    doStart
-    ;;
-  "habits")
-    logPrint debug "Mode => habits"
-    habitList
-    ;;
-  "help")
-    logPrint debug "Mode => help"
+  "--help"|"-h"|"help")
+    logPrint debug "Command => ${usrCommand}"
     syntaxShow
-    helpShow
-    exit 0
-    ;;
-  "list")
-    databaseCheckIfExists
-    logPrint debug "Mode => list"
-    itemList
     ;;
   "--link")
-    logPrint debug "Mode => link"
+    logPrint debug "Command => ${usrCommand}"
     systemLink
-    ;;
-  "--path")
-    systemPath
     ;;
   *)
     logPrint error "Unknown option '${usrCommand}'"
