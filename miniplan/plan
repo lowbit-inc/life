@@ -4,25 +4,29 @@
 # Color #
 #########
 
-colorReset="\e[0m"
-colorBold="\e[1m"
-colorDim="\e[2m"
-colorUnderline="\e[4m"
-colorBlink="\e[5m"
-colorRed="\e[31m"
-colorGreen="\e[32m"
-colorYellow="\e[33m"
-colorBlue="\e[34m"
-colorMagenta="\e[35m"
-colorCyan="\e[36m"
-colorLightGray="\e[37m"
-colorDarkGray="\e[90m"
-colorLightRed="\e[91m"
-colorLightGreen="\e[92m"
-colorLightYellow="\e[93m"
-colorLightBlue="\e[94m"
-colorLightMagenta="\e[95m"
-colorLightCyan="\e[96m"
+if [ ! "${COLOR}" == "false" ]; then
+
+  colorReset="\e[0m"
+  colorBold="\e[1m"
+  colorDim="\e[2m"
+  colorUnderline="\e[4m"
+  colorBlink="\e[5m"
+  colorRed="\e[31m"
+  colorGreen="\e[32m"
+  colorYellow="\e[33m"
+  colorBlue="\e[34m"
+  colorMagenta="\e[35m"
+  colorCyan="\e[36m"
+  colorLightGray="\e[37m"
+  colorDarkGray="\e[90m"
+  colorLightRed="\e[91m"
+  colorLightGreen="\e[92m"
+  colorLightYellow="\e[93m"
+  colorLightBlue="\e[94m"
+  colorLightMagenta="\e[95m"
+  colorLightCyan="\e[96m"
+
+fi
 
 #############
 # Completed #
@@ -472,7 +476,7 @@ logPrint() {
   case $thisLogLevel in
 
     "debug")
-      if [ $DEBUG == "true" ]; then
+      if [ "${DEBUG}" == "true" ]; then
         echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorDarkGray}debug${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
       fi
       ;;
@@ -520,6 +524,7 @@ syntaxShow() {
   echo -e "  ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Add an item to the inbox${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Basic commands:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}completed${colorReset}     ${colorDim}- List of completed items${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}event${colorReset}         ${colorDim}- Event operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
@@ -527,7 +532,8 @@ syntaxShow() {
   echo
   echo -e "${colorBold}${colorLightGreen}Interactive commands:${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}decide${colorReset}        ${colorDim}- Start the 'Decision' mode${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightMagenta}do${colorReset}            ${colorDim}- Start the 'Do' mode${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}review${colorReset}        ${colorDim}- Start the 'Revision' mode${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}work${colorReset}          ${colorDim}- Start the 'Work' mode${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}System Commands:${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}--help${colorReset}        ${colorDim}- Display a help message${colorReset}"
@@ -546,6 +552,8 @@ syntaxShow() {
 timestampGetNow() {
   date +%Y-%m-%dT%H:%M:%S
 }
+
+################################################################################
 
 ##########
 # Script #
