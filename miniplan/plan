@@ -63,6 +63,24 @@ databaseCreate() {
 
 }
 
+databaseTableDeleteByString() {
+
+  logPrint debug "Database => Delete by string"
+
+  if [ ! "${2}" ]; then
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  # Assigning the user args
+  thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+  thisString="${1}" ; shift ; logPrint debug "String => ${thisTable}"
+
+  # Deleting
+  sed -i .bkp "/:${thisString}:/d" "${databasePath}/${thisTable}.db"
+
+}
+
 databaseTableDeleteFirst() {
 
   logPrint debug "Database => Delete first"
@@ -90,39 +108,29 @@ databaseTableInsert() {
 
   # Assigning the user args
   thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
-  thisMode="${1}"   ; shift ; logPrint debug "Mode => ${thisMode}"
   thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
 
-  # Checking if the key must be unique
-  if [[ "${thisMode}" == "unique" ]] && [[ $(grep ":${thisKey}:" "${databasePath}/${thisTable}.db") ]]; then
+  # Preparing the entry
+  thisEntry=":${thisKey}:"
 
-    logPrint warn "'${thisKey}' already exists on ${thisTable}"
+  # Appending additional/optional fields
+  while [ "${1}" ]; do
+    thisEntry="${thisEntry}${1}:"
+    shift
+  done
 
-  else
-
-    # Preparing the entry
-    thisEntry=":${thisKey}:"
-
-    # Appending additional/optional fields
-    while [ "${1}" ]; do
-      thisEntry="${thisEntry}${1}:"
-      shift
-    done
-
-    # Adding entry to the table
-    logPrint debug "Entry => ${thisEntry}"
-    echo "${thisEntry}" >> "${databasePath}/${thisTable}.db"
-    systemCheckReturnCode "'${thisKey}' added to ${thisTable}" "Failed to add ${thisKey} to ${thisTable}"
-
-  fi
+  # Adding entry to the table
+  logPrint debug "Entry => ${thisEntry}"
+  echo "${thisEntry}" >> "${databasePath}/${thisTable}.db"
+  systemCheckReturnCode "Database operation - OK" "Failed to write to database"
 
 }
 
-databaseTableSelect() {
+databaseTableList() {
 
-  logPrint debug "Database => Select"
+  logPrint debug "Database => List"
 
-  if [ ! "${2}" ]; then
+  if [ ! "${3}" ]; then
     logPrint error "Missing at least one of the required arguments"
     exit 1
   fi
@@ -130,11 +138,10 @@ databaseTableSelect() {
   # Assigning the user args
   thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
   thisLimit="${1}"  ; shift ; logPrint debug "Limit => ${thisLimit}"
-  thisPrefix="${1}" ; shift ; logPrint debug "Prefix => ${thisPrefix}"
   thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
 
   # Header
-  echo -e "${colorBold}${colorUnderline}${colorLightGreen}${thisTable^}${colorReset}"
+  echo -e "${colorBold}${colorUnderline}${colorLightGreen}${thisTable^}${colorReset} ${colorDim}(${thisLimit} items)${colorReset}"
   echo
 
   # Looping through each entry
@@ -147,7 +154,7 @@ databaseTableSelect() {
     fi
 
     # Key
-    echo -en "${colorBold}${thisPrefix}`echo "${entry}" | cut -d: -f${thisKey}`${colorReset}"
+    echo -en "${colorBold}`echo "${entry}" | cut -d: -f${thisKey}`${colorReset}"
 
     # Additional/optional fields
     unset IFS
@@ -298,7 +305,29 @@ inboxAdd() {
 
   thisInboxItemName="${@}"
 
-  databaseTableInsert inbox unique "${thisInboxItemName}"
+  databaseTableInsert inbox " + " "${thisInboxItemName}" "`timestampGetNow`"
+
+  logPrint info "'${thisInboxItemName}' added to the inbox"
+
+}
+
+inboxDelete() {
+
+  logPrint debug "Inbox Delete"
+
+  if [ ! "${1}" ]; then
+    logPrint error "Missing inbox item name"
+    exit 1
+  fi
+
+  thisInboxItemName="${@}"
+
+  # Search by string
+  # Delete by string
+  # Search by string ; result
+  databaseTableDeleteByString inbox "${thisInboxItemName}"
+
+  logPrint info "'${thisInboxItemName}' deleted from inbox"
 
 }
 
@@ -306,7 +335,7 @@ inboxList() {
 
   logPrint debug "Inbox List"
 
-  databaseTableSelect inbox 10 "- " 2
+  databaseTableList inbox 10 2 3
 
 }
 
@@ -342,6 +371,11 @@ inboxParse() {
       shift
       inboxAdd "${@}"
       ;;
+    "delete")
+      logPrint debug "Delete => ${usrAction}"
+      shift
+      inboxDelete "${@}"
+      ;;
     "list")
       logPrint debug "Action => ${usrAction}"
       shift
@@ -369,7 +403,7 @@ systemCheckReturnCode() {
   thisStringError="${2}"
 
   if [ $thisRC -eq 0 ]; then
-    logPrint info "${thisStringOK}"
+    logPrint debug "${thisStringOK}"
   else
     logPrint error "${thisStringError}"
     exit 1
@@ -503,6 +537,14 @@ syntaxShow() {
   echo
   exit 0
 
+}
+
+#############
+# Timestamp #
+#############
+
+timestampGetNow() {
+  date +%Y-%m-%dT%H:%M:%S
 }
 
 ##########
