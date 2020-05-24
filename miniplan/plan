@@ -589,7 +589,7 @@ timestampGetNow() {
 # Script #
 ##########
 
-modeWorkDraw ; exit
+# modeTest ; exit
 
 if [ ! $1 ]; then
   syntaxShow
