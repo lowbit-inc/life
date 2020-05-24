@@ -113,13 +113,3 @@ plan habit  # Help for Habit operations
 
 plan --help # General help
 ```
-
-___
-
-- Study Pixel Art (task)
-- Practice on Duolingo (habit - daily)
-- Update LinkedIn (task)
-- Online webinar (event)
-- Review budget (habit - monthly)
-- Watch Hi-Score Girl (task)
-- Write a book (task)
