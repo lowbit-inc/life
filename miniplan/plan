@@ -25,6 +25,7 @@ if [ ! "${COLOR}" == "false" ]; then
   colorLightBlue="\e[94m"
   colorLightMagenta="\e[95m"
   colorLightCyan="\e[96m"
+  colorBgLightRed="\e[101m"
 
 fi
 
@@ -509,6 +510,35 @@ logTest() {
   logPrint user "Test message"
 }
 
+###############
+# Mode - Work #
+###############
+
+modeWorkDraw() {
+
+  clear
+
+  echo -e "${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition)${colorReset}"
+  echo -e
+  echo -e "${colorBold}Modes${colorReset}: ${colorUnderline}r${colorReset}eview ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}ecide ${colorDim}|${colorReset} ${colorBgLightRed}${colorUnderline}w${colorReset}${colorBgLightRed}ork${colorReset}"
+  echo -e
+  echo -e "Next Items ${colorDim}${colorLightGray}(${colorDarkGray}5${colorLightGray}/${colorLightRed}2${colorLightGray}/${colorLightYellow}14${colorLightGray}/${colorLightGreen}4${colorLightGray})${colorReset}"
+  echo -e
+  echo -e "  Event   : ${colorBold}${colorLightRed}[E] Next Event${colorReset}"
+  echo -e "  ${colorDim}Actions : ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}e${colorReset}${colorDim}vent${colorReset}"
+  echo -e
+  echo -e "  Task    : ${colorBold}${colorLightYellow}[ ] Next Task${colorReset}"
+  echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}t${colorReset}${colorDim}ask"
+  echo -e "            ${colorUnderline}p${colorReset}${colorDim}roject | ${colorUnderline}c${colorReset}${colorDim}onvert-${colorUnderline}t${colorReset}${colorDim}o-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}c${colorReset}${colorDim}onvert-${colorUnderline}t${colorReset}${colorDim}o-${colorUnderline}h${colorReset}${colorDim}abit${colorReset}"
+  echo -e
+  echo -e "  Habit   : ${colorBold}${colorLightGreen}[H] Next Habit${colorReset}"
+  echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}h${colorReset}${colorDim}abit${colorReset}"
+  echo -e
+  echo -e "${colorDim}Other actions: ${colorUnderline}a${colorReset}${colorDim}dd (inbox) | ${colorUnderline}s${colorReset}${colorDim}ync | ${colorUnderline}q${colorReset}${colorDim}uit${colorReset}"
+  echo -e
+
+}
+
 ##########
 # Syntax #
 ##########
@@ -558,6 +588,8 @@ timestampGetNow() {
 ##########
 # Script #
 ##########
+
+modeWorkDraw ; exit
 
 if [ ! $1 ]; then
   syntaxShow
