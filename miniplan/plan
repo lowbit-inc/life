@@ -69,9 +69,31 @@ databaseCreate() {
 
 }
 
+databaseTableCheckEntryExists() {
+
+  logPrint debug "Checking if an entry exists in a column of a table"
+
+  if [ "${2}" ]; then
+    thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+    thisString="${1}" ; shift ; logPrint debug "String => ${thisString}"
+  else
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  if [[ $(grep -e "${thisString}" "${databasePath}/${thisTable}.db") ]] ; then
+    logPrint debug "Entry found"
+    return 0
+  else
+    logPrint debug "Entry not found"
+    return 1
+  fi
+
+}
+
 databaseTableDeleteByString() {
 
-  logPrint debug "Database => Delete by string"
+  logPrint debug "Database => Deleting entry by string"
 
   if [ ! "${2}" ]; then
     logPrint error "Missing at least one of the required arguments"
@@ -83,7 +105,7 @@ databaseTableDeleteByString() {
   thisString="${1}" ; shift ; logPrint debug "String => ${thisTable}"
 
   # Deleting
-  sed -i .bkp "/:${thisString}:/d" "${databasePath}/${thisTable}.db"
+  sed -i .bkp "/${thisString}/d" "${databasePath}/${thisTable}.db"
 
 }
 
@@ -117,11 +139,11 @@ databaseTableInsert() {
   thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
 
   # Preparing the entry
-  thisEntry=":${thisKey}:"
+  thisEntry="${thisKey}"
 
   # Appending additional/optional fields
   while [ "${1}" ]; do
-    thisEntry="${thisEntry}${1}:"
+    thisEntry="${thisEntry}|${1}"
     shift
   done
 
@@ -136,7 +158,7 @@ databaseTableList() {
 
   logPrint debug "Database => List"
 
-  if [ ! "${3}" ]; then
+  if [ ! "${4}" ]; then
     logPrint error "Missing at least one of the required arguments"
     exit 1
   fi
@@ -144,10 +166,11 @@ databaseTableList() {
   # Assigning the user args
   thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
   thisLimit="${1}"  ; shift ; logPrint debug "Limit => ${thisLimit}"
+  thisPrefix="${1}" ; shift ; logPrint debug "Prefix => ${thisPrefix}"
   thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
 
   # Header
-  echo -e "${colorBold}${colorUnderline}${colorLightGreen}${thisTable^}${colorReset} ${colorDim}(${thisLimit} items)${colorReset}"
+  echo -e "${colorBold}${colorUnderline}${colorLightGreen}${thisTable^}${colorReset} ${colorDim}(limited to ${thisLimit})${colorReset}"
   echo
 
   # Looping through each entry
@@ -160,12 +183,12 @@ databaseTableList() {
     fi
 
     # Key
-    echo -en "${colorBold}`echo "${entry}" | cut -d: -f${thisKey}`${colorReset}"
+    echo -en "${thisPrefix}${colorBold}`echo "${entry}" | cut -d'|' -f${thisKey}`${colorReset}"
 
     # Additional/optional fields
     unset IFS
     for field in $1; do
-      echo -n " `echo "${entry}" | cut -d: -f$1`"
+      echo -n " `echo "${entry}" | cut -d'|' -f$1`"
     done
 
     # New line
@@ -206,8 +229,8 @@ doDraw() {
 
   thisItemsCount=`itemCount`
   thisItem=`head -n1 ${databaseItems}`
-  thisItemStatus=`echo ${thisItem} | cut -d: -f1`
-  thisItemName=`echo ${thisItem} | cut -d: -f3-`
+  thisItemStatus=`echo ${thisItem} | cut -d'|' -f1`
+  thisItemName=`echo ${thisItem} | cut -d'|' -f3-`
 
   clear
 
@@ -311,15 +334,13 @@ inboxAdd() {
 
   thisInboxItemName="${@}"
 
-  databaseTableInsert inbox " + " "${thisInboxItemName}" "`timestampGetNow`"
+  databaseTableInsert inbox "`timestampGetNow`" "${thisInboxItemName}"
 
   logPrint info "'${thisInboxItemName}' added to the inbox"
 
 }
 
 inboxDelete() {
-
-  logPrint debug "Inbox Delete"
 
   if [ ! "${1}" ]; then
     logPrint error "Missing inbox item name"
@@ -328,12 +349,16 @@ inboxDelete() {
 
   thisInboxItemName="${@}"
 
-  # Search by string
-  # Delete by string
-  # Search by string ; result
-  databaseTableDeleteByString inbox "${thisInboxItemName}"
-
-  logPrint info "'${thisInboxItemName}' deleted from inbox"
+  if ! databaseTableCheckEntryExists inbox "|${thisInboxItemName}$" ; then
+    logPrint error "Item '${thisInboxItemName}' not found in Inbox"
+    exit 1
+  fi
+  
+  if databaseTableDeleteByString inbox "|${thisInboxItemName}$" ; then
+    logPrint info "'${thisInboxItemName}' deleted from Inbox"
+  else
+    logPring error "Failed to delete '${thisInboxItemName}' from Inbox"
+  fi
 
 }
 
@@ -341,7 +366,7 @@ inboxList() {
 
   logPrint debug "Inbox List"
 
-  databaseTableList inbox 10 2 3
+  databaseTableList inbox 10 "- " 2
 
 }
 
@@ -363,8 +388,6 @@ inboxShowUsage() {
 
 inboxParse() {
 
-  logPrint debug "Inbox Parse"
-
   if [ ! $1 ]; then
     inboxShowUsage
   fi
@@ -378,7 +401,7 @@ inboxParse() {
       inboxAdd "${@}"
       ;;
     "delete")
-      logPrint debug "Delete => ${usrAction}"
+      logPrint debug "Action => ${usrAction}"
       shift
       inboxDelete "${@}"
       ;;
