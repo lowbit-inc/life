@@ -1,6 +1,14 @@
 # Lowbit Planner - Bash Edition (miniplan)
 
+## The Philosophy
+
 ## How to Use (with examples)
+
+**Install**:
+
+```bash
+true
+```
 
 **Color:**
 
@@ -76,12 +84,30 @@ plan decide   # Decision mode => Define priorities
 
 ```
 
+**Events:**
+
+```bash
+true
+```
+
 **Habits:**
 
 ```bash
 plan habit list                     # List and checklist of habits
 
 plan habit add weekly Update Linux  # New weekly habit 
+```
+
+**List:**
+
+```bash
+true
+```
+
+**Search:**
+
+```bash
+plan search Task  # case-insensitive search across all tables
 ```
 
 **Completed:**

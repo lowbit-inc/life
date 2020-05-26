@@ -105,7 +105,8 @@ databaseTableDeleteByString() {
   thisString="${1}" ; shift ; logPrint debug "String => ${thisTable}"
 
   # Deleting
-  sed -i .bkp "/${thisString}/d" "${databasePath}/${thisTable}.db"
+  sed -i .bkp "1,/${thisString}/{/${thisString}/d;}" "${databasePath}/${thisTable}.db"
+  # sed -i .bkp "/${thisString}/d" "${databasePath}/${thisTable}.db"
 
 }
 
@@ -129,7 +130,7 @@ databaseTableInsert() {
 
   logPrint debug "Database => Insert"
 
-  if [ ! "${3}" ]; then
+  if [ ! "${2}" ]; then
     logPrint error "Missing at least one of the required arguments"
     exit 1
   fi
@@ -334,9 +335,9 @@ inboxAdd() {
 
   thisInboxItemName="${@}"
 
-  databaseTableInsert inbox "`timestampGetNow`" "${thisInboxItemName}"
+  databaseTableInsert inbox "-" "`timestampGetNow`" "${thisInboxItemName}"
 
-  logPrint info "'${thisInboxItemName}' added to the inbox"
+  logPrint info "New item added to Inbox: '${thisInboxItemName}'"
 
 }
 
@@ -357,7 +358,7 @@ inboxDelete() {
   if databaseTableDeleteByString inbox "|${thisInboxItemName}$" ; then
     logPrint info "'${thisInboxItemName}' deleted from Inbox"
   else
-    logPring error "Failed to delete '${thisInboxItemName}' from Inbox"
+    logPrint error "Failed to delete '${thisInboxItemName}' from Inbox"
   fi
 
 }
@@ -366,7 +367,7 @@ inboxList() {
 
   logPrint debug "Inbox List"
 
-  databaseTableList inbox 10 "- " 2
+  databaseTableList inbox 10 "" 1 3
 
 }
 
@@ -557,6 +558,9 @@ modeTest() {
         modeWorkDraw
         lastMode="modeWorkDraw"
         ;;
+      "quit"|"q")
+        exit 0
+        ;;
       *)
         $lastMode
         ;;
@@ -635,7 +639,7 @@ modeWorkDraw() {
   echo
   echo -e "  Task    : ${colorBold}${colorLightYellow}[ ] Next Task${colorReset}"
   echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}t${colorReset}${colorDim}ask"
-  echo -e "            ${colorUnderline}p${colorReset}${colorDim}roject | ${colorUnderline}c${colorReset}${colorDim}onvert-${colorUnderline}t${colorReset}${colorDim}o-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}c${colorReset}${colorDim}onvert-${colorUnderline}t${colorReset}${colorDim}o-${colorUnderline}h${colorReset}${colorDim}abit${colorReset}"
+  echo -e "            ${colorUnderline}p${colorReset}${colorDim}roject${colorReset}"
   echo
   echo -e "  Habit   : ${colorBold}${colorLightCyan}[H] Next Habit${colorReset}"
   echo -e "${colorDim}  Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}h${colorReset}${colorDim}abit${colorReset}"
@@ -664,6 +668,8 @@ syntaxShow() {
   echo -e "  ${colorUnderline}${colorLightMagenta}event${colorReset}         ${colorDim}- Event operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}list${colorReset}          ${colorDim}- List of next items${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}search${colorReset}        ${colorDim}- Search items in database${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}task${colorReset}          ${colorDim}- Task operations${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Interactive commands:${colorReset}"
@@ -676,6 +682,114 @@ syntaxShow() {
   echo -e "  ${colorUnderline}${colorLightMagenta}--install${colorReset}     ${colorDim}- Install this script${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}--link${colorReset}        ${colorDim}- Create a symbolic link to this script${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}--version${colorReset}     ${colorDim}- Display the script version${colorReset}"
+  echo
+  exit 0
+
+}
+
+########
+# Task #
+########
+
+taskAdd() {
+
+  logPrint debug "Task Add"
+
+  if [ ! "${1}" ]; then
+    logPrint error "Missing task name"
+    exit 1
+  fi
+
+  thisTaskName="${@}"
+
+  databaseTableInsert task "[ ]" "`timestampGetNow`" "0" "${thisTaskName}"
+
+  logPrint info "New task created: '${thisTaskName}'"
+
+}
+
+taskDelete() {
+
+  if [ ! "${1}" ]; then
+    logPrint error "Missing task name"
+    exit 1
+  fi
+
+  thisTaskName="${@}"
+
+  if ! databaseTableCheckEntryExists task "|${thisTaskName}$" ; then
+    logPrint error "Task not found: '${thisTaskName}'"
+    exit 1
+  fi
+  
+  if databaseTableDeleteByString task "|${thisTaskName}$" ; then
+    logPrint info "Task deleted: '${thisTaskName}'"
+  else
+    logPring error "Failed to delete task: '${thisTaskName}'"
+  fi
+
+}
+
+taskList() {
+
+  logPrint debug "Task List"
+
+  databaseTableList task 10 "" 1 4
+
+}
+
+taskParse() {
+
+  if [ ! $1 ]; then
+    taskShowUsage
+  fi
+
+  usrAction=$1
+
+  case ${usrAction} in
+    "add")
+      logPrint debug "Action => ${usrAction}"
+      shift
+      taskAdd "${@}"
+      ;;
+    "complete")
+      logPrint debug "Action => ${usrAction}"
+      shift
+      taskComplete "${@}"
+      ;;
+    "delete")
+      logPrint debug "Action => ${usrAction}"
+      shift
+      taskDelete "${@}"
+      ;;
+    "list")
+      logPrint debug "Action => ${usrAction}"
+      shift
+      taskList
+      ;;
+    "--help"|"-h"|"help")
+      logPrint debug "Action => ${usrAction}"
+      taskShowUsage
+      ;;
+    *)
+      logPrint error "Unknown action '${usrAction}'"
+      ;;
+  esac
+
+}
+
+taskShowUsage() {
+
+  echo -e "${colorBold}Lowbit Planner - Task${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` task${colorReset} ${colorUnderline}${colorLightRed}action${colorReset}${colorDim} [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Actions:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}task_name${colorReset}            ${colorDim}- Create a new task${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}complete${colorReset} ${colorUnderline}task_name${colorReset}       ${colorDim}- Complete a task${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}task_name${colorReset}         ${colorDim}- Delete a task${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                     ${colorDim}- List tasks${colorReset}"
   echo
   exit 0
 
@@ -723,6 +837,11 @@ case ${usrCommand} in
     logPrint debug "Command => ${usrCommand}"
     shift ; inboxParse "${@}"
     ;;
+  "task")
+    databaseCheckIfExists
+    logPrint debug "Command => ${usrCommand}"
+    shift ; taskParse "${@}"
+    ;;
   "--help"|"-h"|"help")
     logPrint debug "Command => ${usrCommand}"
     syntaxShow
@@ -730,6 +849,10 @@ case ${usrCommand} in
   "--link")
     logPrint debug "Command => ${usrCommand}"
     systemLink
+    ;;
+  "--draw")
+    logPrint debug "Mocked interactive mode"
+    modeTest
     ;;
   *)
     logPrint error "Unknown option '${usrCommand}'"
