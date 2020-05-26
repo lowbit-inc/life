@@ -722,11 +722,11 @@ syntaxShow() {
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
   echo -e "  ${colorBold}`basename $0`${colorReset} ${colorUnderline}${colorLightMagenta}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightRed}action${colorReset}${colorDim}] [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
   echo
-  # echo -e "${colorBold}${colorLightGreen}Quick commands:${colorReset}"
-  # echo -e "  ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Add an item to the inbox${colorReset}"
+  echo -e "${colorBold}${colorLightGreen}Quick commands:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Add an item to the inbox${colorReset}"
   # echo
   echo -e "${colorBold}${colorLightGreen}Basic commands:${colorReset}"
-  # echo -e "  ${colorUnderline}${colorLightMagenta}completed${colorReset}     ${colorDim}- List of completed items${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}completed${colorReset}     ${colorDim}- List of completed items${colorReset}"
   # echo -e "  ${colorUnderline}${colorLightMagenta}event${colorReset}         ${colorDim}- Event operations${colorReset}"
   # echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
@@ -915,12 +915,11 @@ usrCommand=$1
 
 case ${usrCommand} in
 
-  # "add")
-  #   logPrint debug "Command => ${usrCommand}"
-  #   databaseCheckIfExists
-  #   shift
-  #   itemAdd "${@}"
-  #   ;;
+  "add")
+    logPrint debug "Command => ${usrCommand}"
+    databaseCheckIfExists
+    shift ; inboxAdd "${@}"
+    ;;
   "completed")
     databaseCheckIfExists
     logPrint debug "Command => ${usrCommand}"
