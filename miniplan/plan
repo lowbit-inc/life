@@ -214,6 +214,40 @@ databaseTableList() {
 
 }
 
+databaseTableSort() {
+
+  logPrint debug "Sorting table entries"
+
+  ## Input
+  if [ $3 ]; then
+    thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+    thisColumn="${1}" ; shift ; logPrint debug "Column => ${thisColumn}"
+    thisOrder="${1}"  ; shift ; logPrint debug "Order => ${thisOrder}"
+  fi
+
+  # Validating Order arg
+  case "${thisOrder}" in
+    "asc"|"ASC")
+      thisOrderCommand=""
+      ;;
+    "desc"|"DESC")
+      thisOrderCommand="--reverse"
+      ;;
+    *)
+      logPrint error "Wrong value for 'order' argument"
+      exit 1
+      ;;
+  esac
+
+  ## Output
+  if sort "${databasePath}/${thisTable}.db" --field-separator '|' --key ${thisColumn} ${thisOrderCommand} --output="${databasePath}/${thisTable}.db" ; then
+    logPrint debug "Table sorted"
+  else
+    logPrint debug "Failed to sort table"
+  fi
+  
+}
+
 ###########
 # Do Mode #
 ###########
@@ -317,98 +351,126 @@ eventAdd() {
   logPrint debug "Event Add"
 
   if [ "${3}" ]; then
-    thisEventDate="${1}"  ; logPrint debug "${thisEventDate}" ; shift
-    thisEventTime="${1}"  ; logPrint debug "${thisEventTime}" ; shift
-    thisEventName="${@}"  ; logPrint debug "${thisEventName}"
+    thisEventDate="${1}"  ; logPrint debug "Event Date => ${thisEventDate}" ; shift
+    thisEventTime="${1}"  ; logPrint debug "Event Time => ${thisEventTime}" ; shift
+    thisEventName="${@}"  ; logPrint debug "Event Name => ${thisEventName}"
   else
     logPrint error "Missing one of required arguments"
     exit 1
   fi
 
+  # Validating the date arg
+  timestampValidateDate ${thisEventDate}
+
+  # Validate time
+  timestampValidateTime ${thisEventTime}
+
+  # Validating if an event with the same name already exists
   if databaseTableCheckEntryExists event "|${thisEventName}$" ; then
     logPrint error "Event already exists: '${thisEventName}'"
     exit 1
   fi
 
+  # Adding the event
   if databaseTableInsert event "[E]" "${thisEventDate} ${thisEventTime}" "${thisEventName}" ; then
     logPrint info "New event created: '${thisEventName}'"
   else
     logPrint error "Failed to create event: '${thisEventName}'"
   fi
 
+  # Sorting the event table by date
+  databaseTableSort event 2 asc
+  # if databaseTableInsert event "[E]" "${thisEventDate} ${thisEventTime}" "${thisEventName}" ; then
+  #   logPrint info "New event created: '${thisEventName}'"
+  # else
+  #   logPrint error "Failed to create event: '${thisEventName}'"
+  # fi
+
 }
 
 eventComplete() {
 
-  if [ ! "${1}" ]; then
-    logPrint error "Missing task name"
+  ## Input
+  if [ "${1}" ]; then
+    thisEventName="${@}"  ; logPrint debug "Event name => ${thisEventName}"
+  else
+    logPrint error "Missing event name"
     exit 1
   fi
 
-  thisTaskName="${@}"
+  ## Processing
 
-  if ! databaseTableCheckEntryExists task "|${thisTaskName}$" ; then
-    logPrint error "Task not found: '${thisTaskName}'"
+  # Validating if the event exists
+  if ! databaseTableCheckEntryExists event "|${thisEventName}$" ; then
+    logPrint error "Event not found: '${thisEventName}'"
     exit 1
   fi
   
-  if ! databaseTableInsert completed "[X]" "`timestampGetNow`" "${thisTaskName}" ; then
-    logPrint error "Failed to mark task as completed: '${thisTaskName}'"
+  # Marking as completed
+  if ! databaseTableInsert completed "[X]" "`timestampGetNow`" "${thisEventName}" ; then
+    logPrint error "Failed to mark event as completed: '${thisEventName}'"
     exit 1
   fi
 
-  if ! databaseTableDeleteByString task "|${thisTaskName}$" ; then
-    logPrint error "Failed to delete task after marking it as completed: '${thisTaskName}'"
+  # Deleting from event table
+  if ! databaseTableDeleteByString event "|${thisEventName}$" ; then
+    logPrint error "Failed to delete event after marking it as completed: '${thisEventName}'"
     exit 1
   fi
 
-  logPrint info "Yay! Another task completed: '${thisTaskName}'"
+  ## Output
+  logPrint info "Yay! Another event completed: '${thisEventName}'"
 
 }
 
 
 eventDelete() {
 
-  if [ ! "${1}" ]; then
-    logPrint error "Missing task name"
+  ## Input
+  if [ "${1}" ]; then
+    thisEventName="${@}"  ; logPrint debug "Event Name => ${thisEventName}"
+  else
+    logPrint error "Missing event name"
     exit 1
   fi
 
-  thisTaskName="${@}"
+  ## Processing
 
-  if ! databaseTableCheckEntryExists task "|${thisTaskName}$" ; then
-    logPrint error "Task not found: '${thisTaskName}'"
+  # Validating if the event exists
+  if ! databaseTableCheckEntryExists event "|${thisEventName}$" ; then
+    logPrint error "Event not found: '${thisEventName}'"
     exit 1
   fi
   
-  if databaseTableDeleteByString task "|${thisTaskName}$" ; then
-    logPrint info "Task deleted: '${thisTaskName}'"
+  # Deleting the event
+  if databaseTableDeleteByString event "|${thisEventName}$" ; then
+    logPrint info "Event deleted: '${thisEventName}'"
   else
-    logPrint error "Failed to delete task: '${thisTaskName}'"
+    logPrint error "Failed to delete event: '${thisEventName}'"
   fi
 
 }
 
 eventList() {
 
-  logPrint debug "Task List"
+  logPrint debug "Event List"
 
-  databaseTableList task 10 asc 1 4
+  databaseTableList event 10 asc 1 2 3
 
 }
 
 eventShowUsage() {
 
-  echo -e "${colorBold}Lowbit Planner - Task${colorReset}"
+  echo -e "${colorBold}Lowbit Planner - Event${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` task${colorReset} ${colorUnderline}${colorLightRed}action${colorReset}${colorDim} [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
+  echo -e "  ${colorBold}`basename $0` event${colorReset} ${colorUnderline}${colorLightRed}action${colorReset}${colorDim} [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Actions:${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}task_name${colorReset}            ${colorDim}- Create a new task${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}complete${colorReset} ${colorUnderline}task_name${colorReset}       ${colorDim}- Complete a task${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}task_name${colorReset}         ${colorDim}- Delete a task${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                     ${colorDim}- List tasks${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}date${colorReset} (YYYY-MM-DD) ${colorUnderline}time${colorReset} (HH:MM) ${colorUnderline}event_name${colorReset} ${colorDim}- Create a new event${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}complete${colorReset} ${colorUnderline}event_name${colorReset}                           ${colorDim}- Complete an event${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}event_name${colorReset}                             ${colorDim}- Delete an event${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                                          ${colorDim}- List events${colorReset}"
   echo
   exit 0
 
@@ -1049,6 +1111,42 @@ taskRouter() {
 
 timestampGetNow() {
   date "+%Y-%m-%d %H:%M"
+}
+
+timestampValidateDate() {
+
+  if [ $1 ]; then
+    thisDate="${1}" ; logPrint debug "Validating date => ${thisDate}"
+  else
+    logPrint error "Missing date argument to validate"
+    exit 1
+  fi
+
+  if [[ $(echo "${thisDate}" | grep -e "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$") ]] ; then
+    return 0
+  else
+    logPrint error "Invalid date format - Must be YYYY-MM-DD"
+    exit 1
+  fi
+
+}
+
+timestampValidateTime() {
+
+  if [ $1 ]; then
+    thisTime="${1}" ; logPrint debug "Validating time => ${thisTime}"
+  else
+    logPrint error "Missing time argument to validate"
+    exit 1
+  fi
+
+  if [[ $(echo "${thisTime}" | grep -e "^[0-9][0-9]:[0-9][0-9]$") ]] ; then
+    return 0
+  else
+    logPrint error "Invalid time format - Must be HH:MM"
+    exit 1
+  fi
+
 }
 
 ################################################################################
