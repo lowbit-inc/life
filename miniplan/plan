@@ -132,6 +132,21 @@ databaseTableDeleteFirst() {
 
 }
 
+databaseTableGetByString() {
+
+  ## Input
+  if [ $2 ]; then
+    thisTable=$1  ; shift
+    thisString=$1 ; shift
+  else
+    logPrint error "Missing one of required arguments"
+  fi
+
+  ## Output
+  grep "${thisString}" "${databasePath}/${thisTable}.db"
+
+}
+
 databaseTableInsert() {
 
   logPrint debug "Database => Insert"
@@ -575,14 +590,14 @@ habitAdd() {
   fi
 
   # Adding the habit
-  if databaseTableInsert habit "[H]" "${thisHabitRecurrenceOrder}" "${thisHabitRecurrenceString}" "[ ]" "${thisHabitName}" ; then
+  if databaseTableInsert habit "[H]" "${thisHabitRecurrenceOrder}" "${thisHabitRecurrenceString}" "1999-01-01 00:00 00" "[ ]" "${thisHabitName}" ; then
     logPrint info "New habit created: '${thisHabitName}'"
   else
     logPrint error "Failed to create habit: '${thisHabitName}'"
   fi
 
   # Sorting the habit table by recurrence and date
-  databaseTableSort habit "2,5" asc
+  databaseTableSort habit "2,6" asc
 
 }
 
@@ -617,7 +632,7 @@ habitComplete() {
   fi
 
   # Marking habit as completed
-  if ! databaseTableUpdateEntry habit "\[ \]|${thisHabitName}$" "\[X\]|${thisHabitName}" ; then
+  if ! databaseTableUpdateEntry habit "|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9] [0-9][0-9]|\[ \]|${thisHabitName}$" "|`timestampGetNowWithWeek`|\[X\]|${thisHabitName}" ; then
     logPrint error "Failed to mark habit as completed: '${thisHabitName}'"
     exit 1
   fi
@@ -658,7 +673,10 @@ habitList() {
 
   logPrint debug "Habit List"
 
-  databaseTableList habit 1000 asc 1 4 3 5
+  # Refreshing the habits before listing
+  habitRefresh
+
+  databaseTableList habit 1000 asc 1 5 3 6
 
 }
 
@@ -676,6 +694,97 @@ habitShowUsage() {
   echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                      ${colorDim}- List habits${colorReset}"
   echo
   exit 0
+
+}
+
+habitRefresh() {
+
+  logPrint debug "Habit Refresh"
+
+  logPrint info "Please wait until the habits are refreshed..."
+
+  # Storing the current timestamp masks
+  thisDay="`date '+%Y-%m-%d'`"
+  thisWeek="`date '+%Y.*%U'`"
+  thisMonth="`date '+%Y-%m'`"
+  thisYear="`date '+%Y'`"
+
+  IFS=$'\n'
+  for habit in `databaseTableGetByString habit "[X]"`; do
+
+    habitName=`echo ${habit} | cut -d'|' -f6`
+    habitRecurrence=`echo ${habit} | cut -d'|' -f3 | tr -d ' '`
+    habitCompleted=`echo ${habit} | cut -d'|' -f5`
+    habitTimestamp=`echo ${habit} | cut -d'|' -f4`
+
+    case "${habitRecurrence}" in
+
+      "Daily")
+
+        if [[ $(echo "${habitTimestamp}" | grep -e "${thisDay}") ]] ; then
+          logPrint debug "Habit '${habitName}' is still valid - Ignoring"
+          continue
+        fi
+
+        logPrint debug "Habit '${habitName}' is expired - Unchecking"
+        if databaseTableUpdateEntry habit "|\[X\]|${habitName}$" "|\[ \]|${habitName}" ; then
+          logPrint debug "Habit unchecked"
+        else
+          logPrint error "Failed to uncheck Habit '${habitName}'"
+        fi
+        ;;
+
+      "Weekly")
+        if [[ $(echo "${habitTimestamp}" | grep -e "${thisWeek}") ]] ; then
+          logPrint debug "Habit '${habitName}' is still valid - Ignoring"
+          continue
+        fi
+
+        logPrint debug "Habit '${habitName}' is expired - Unchecking"
+        if databaseTableUpdateEntry habit "|\[X\]|${habitName}$" "|\[ \]|${habitName}" ; then
+          logPrint debug "Habit unchecked"
+        else
+          logPrint error "Failed to uncheck Habit '${habitName}'"
+        fi
+        ;;
+
+      "Monthly")
+        if [[ $(echo "${habitTimestamp}" | grep -e "${thisMonth}") ]] ; then
+          logPrint debug "Habit '${habitName}' is still valid - Ignoring"
+          continue
+        fi
+
+        logPrint debug "Habit '${habitName}' is expired - Unchecking"
+        if databaseTableUpdateEntry habit "|\[X\]|${habitName}$" "|\[ \]|${habitName}" ; then
+          logPrint debug "Habit unchecked"
+        else
+          logPrint error "Failed to uncheck Habit '${habitName}'"
+        fi
+        ;;
+
+      "Yearly")
+        if [[ $(echo "${habitTimestamp}" | grep -e "${thisYear}") ]] ; then
+          logPrint debug "Habit '${habitName}' is still valid - Ignoring"
+          continue
+        fi
+
+        logPrint debug "Habit '${habitName}' is expired - Unchecking"
+        if databaseTableUpdateEntry habit "|\[X\]|${habitName}$" "|\[ \]|${habitName}" ; then
+          logPrint debug "Habit unchecked"
+        else
+          logPrint error "Failed to uncheck Habit '${habitName}'"
+        fi
+        ;;
+
+      *)
+        logPrint error "Unknown recurrence for habit"
+        ;;
+    esac
+
+  done
+
+  # Reseting IFS
+  unset IFS
 
 }
 
@@ -1304,6 +1413,10 @@ taskRouter() {
 
 timestampGetNow() {
   date "+%Y-%m-%d %H:%M"
+}
+
+timestampGetNowWithWeek() {
+  date "+%Y-%m-%d %H:%M %U"
 }
 
 timestampValidateDate() {
