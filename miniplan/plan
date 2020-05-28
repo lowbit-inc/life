@@ -673,7 +673,7 @@ habitShowUsage() {
   echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}recurrence${colorReset} ${colorUnderline}habit_name${colorReset} ${colorDim}- Create a new habit${colorReset}"
   echo -e "  ${colorUnderline}${colorLightRed}complete${colorReset} ${colorUnderline}habit_name${colorReset}       ${colorDim}- Complete a habit${colorReset}"
   echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}habit_name${colorReset}         ${colorDim}- Delete a habit${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                     ${colorDim}- List habits${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                      ${colorDim}- List habits${colorReset}"
   echo
   exit 0
 
