@@ -248,6 +248,31 @@ databaseTableSort() {
   
 }
 
+databaseTableUpdateEntry() {
+
+  logPrint debug "Database => Updating an entry"
+
+  if [ "${3}" ]; then
+    # Assigning the user args
+    thisTable="${1}"    ; shift ; logPrint debug "Table => ${thisTable}"
+    thisOldValue="${1}" ; shift ; logPrint debug "Old Value => ${thisOldValue}"
+    thisNewValue="${1}" ; shift ; logPrint debug "New Value => ${thisNewValue}"
+  else
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  # Updating the entry
+  if sed -i .bkp s/"${thisOldValue}"/"${thisNewValue}"/ "${databasePath}/${thisTable}.db" ; then
+    logPrint debug "OK - entry updated"
+    return 0
+  else
+    logPrint error "Failed to update entry in table: ${thisTable}"
+    exit 1
+  fi
+
+}
+
 ###########
 # Do Mode #
 ###########
@@ -366,7 +391,7 @@ eventAdd() {
   timestampValidateTime ${thisEventTime}
 
   # Validating if an event with the same name already exists
-  if databaseTableCheckEntryExists event "|${thisEventName}$" ; then
+  if databaseTableCheckEntryExists event ".|${thisEventName}$" ; then
     logPrint error "Event already exists: '${thisEventName}'"
     exit 1
   fi
@@ -380,11 +405,6 @@ eventAdd() {
 
   # Sorting the event table by date
   databaseTableSort event 2 asc
-  # if databaseTableInsert event "[E]" "${thisEventDate} ${thisEventTime}" "${thisEventName}" ; then
-  #   logPrint info "New event created: '${thisEventName}'"
-  # else
-  #   logPrint error "Failed to create event: '${thisEventName}'"
-  # fi
 
 }
 
@@ -401,7 +421,7 @@ eventComplete() {
   ## Processing
 
   # Validating if the event exists
-  if ! databaseTableCheckEntryExists event "|${thisEventName}$" ; then
+  if ! databaseTableCheckEntryExists event ".|${thisEventName}$" ; then
     logPrint error "Event not found: '${thisEventName}'"
     exit 1
   fi
@@ -437,7 +457,7 @@ eventDelete() {
   ## Processing
 
   # Validating if the event exists
-  if ! databaseTableCheckEntryExists event "|${thisEventName}$" ; then
+  if ! databaseTableCheckEntryExists event ".|${thisEventName}$" ; then
     logPrint error "Event not found: '${thisEventName}'"
     exit 1
   fi
@@ -512,9 +532,182 @@ eventRouter() {
 # Habit #
 #########
 
+habitAdd() {
+
+  logPrint debug "Habit Add"
+
+  if [ "${2}" ]; then
+    thisHabitRecurrence="${1}"  ; logPrint debug "Habit Recurrence => ${thisHabitRecurrence}" ; shift
+    thisHabitName="${@}"        ; logPrint debug "Habit Name => ${thisHabitName}"
+  else
+    logPrint error "Missing one of required arguments"
+    exit 1
+  fi
+
+  # Validating recurrence arg
+  case "${thisHabitRecurrence}" in
+    "d"|"daily")
+      thisHabitRecurrenceOrder="10"
+      thisHabitRecurrenceString="Daily  "
+      ;;
+    "w"|"weekly")
+      thisHabitRecurrenceOrder="20"
+      thisHabitRecurrenceString="Weekly "
+      ;;
+    "m"|"monthly")
+      thisHabitRecurrenceOrder="30"
+      thisHabitRecurrenceString="Monthly"
+      ;;
+    "y"|"yearly")
+      thisHabitRecurrenceOrder="40"
+      thisHabitRecurrenceString="Yearly "
+      ;;
+    *)
+      logPrint error "Wrong value for 'recurrence' argument"
+      exit 1
+      ;;
+  esac
+
+  # Validating if a habit with the same name already exists
+  if databaseTableCheckEntryExists habit ".|${thisHabitName}$" ; then
+    logPrint error "Habit already exists: '${thisHabitName}'"
+    exit 1
+  fi
+
+  # Adding the habit
+  if databaseTableInsert habit "[H]" "${thisHabitRecurrenceOrder}" "${thisHabitRecurrenceString}" "[ ]" "${thisHabitName}" ; then
+    logPrint info "New habit created: '${thisHabitName}'"
+  else
+    logPrint error "Failed to create habit: '${thisHabitName}'"
+  fi
+
+  # Sorting the habit table by recurrence and date
+  databaseTableSort habit "2,5" asc
+
+}
+
+habitComplete() {
+
+  ## Input
+  if [ "${1}" ]; then
+    thisHabitName="${@}"  ; logPrint debug "Habit name => ${thisHabitName}"
+  else
+    logPrint error "Missing habit name"
+    exit 1
+  fi
+
+  ## Processing
+
+  # Validating if the habit exists
+  if ! databaseTableCheckEntryExists habit ".|${thisHabitName}$" ; then
+    logPrint error "Habit not found: '${thisHabitName}'"
+    exit 1
+  fi
+
+  # Validating if the habit is already completed
+  if ! databaseTableCheckEntryExists habit "[ ].|${thisHabitName}$" ; then
+    logPrint warn "Habit already completed - Relax ;)"
+    exit 0
+  fi
+
+  # Adding habit to completed table
+  if ! databaseTableInsert completed "[X]" "`timestampGetNow`" "${thisHabitName}" ; then
+    logPrint error "Failed to add habit to completed table: '${thisHabitName}'"
+    exit 1
+  fi
+
+  # Marking habit as completed
+  if ! databaseTableUpdateEntry habit "\[ \]|${thisHabitName}$" "\[X\]|${thisHabitName}" ; then
+    logPrint error "Failed to mark habit as completed: '${thisHabitName}'"
+    exit 1
+  fi
+
+  ## Output
+  logPrint info "Yay! Another habit completed: '${thisHabitName}'"
+
+}
+
+habitDelete() {
+
+  ## Input
+  if [ "${1}" ]; then
+    thisHabitName="${@}"  ; logPrint debug "Habit Name => ${thisHabitName}"
+  else
+    logPrint error "Missing habit name"
+    exit 1
+  fi
+
+  ## Processing
+
+  # Validating if the habit exists
+  if ! databaseTableCheckEntryExists habit ".|${thisHabitName}$" ; then
+    logPrint error "Habit not found: '${thisHabitName}'"
+    exit 1
+  fi
+  
+  # Deleting the habit
+  if databaseTableDeleteByString habit "|${thisHabitName}$" ; then
+    logPrint info "Habit deleted: '${thisHabitName}'"
+  else
+    logPrint error "Failed to delete habit: '${thisHabitName}'"
+  fi
+
+}
+
 habitList() {
-  echo -e "${colorBold}${colorUnderline}Miniplan - Habits:${colorReset}" ; echo
-  cat ${databaseHabits}
+
+  logPrint debug "Habit List"
+
+  databaseTableList habit 1000 asc 1 4 3 5
+
+}
+
+habitShowUsage() {
+
+  echo -e "${colorBold}Lowbit Planner - Habit${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` habit${colorReset} ${colorUnderline}${colorLightRed}action${colorReset}${colorDim} [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Actions:${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}recurrence${colorReset} ${colorUnderline}habit_name${colorReset} ${colorDim}- Create a new habit${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}complete${colorReset} ${colorUnderline}habit_name${colorReset}       ${colorDim}- Complete a habit${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}habit_name${colorReset}         ${colorDim}- Delete a habit${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                     ${colorDim}- List habits${colorReset}"
+  echo
+  exit 0
+
+}
+
+habitRouter() {
+
+  if [ $1 ]; then
+    usrAction=$1  ; shift ; logPrint debug "Action => ${usrAction}"
+  else
+    habitShowUsage
+  fi
+
+  case ${usrAction} in
+    "add")
+      habitAdd "${@}"
+      ;;
+    "complete")
+      habitComplete "${@}"
+      ;;
+    "delete")
+      habitDelete "${@}"
+      ;;
+    "list")
+      habitList
+      ;;
+    "--help"|"-h"|"help")
+      habitShowUsage
+      ;;
+    *)
+      logPrint error "Unknown action '${usrAction}'"
+      ;;
+  esac
+
 }
 
 ########
@@ -555,7 +748,7 @@ inboxAdd() {
     exit 1
   fi
 
-  if databaseTableCheckEntryExists inbox "|${thisInboxItemName}$" ; then
+  if databaseTableCheckEntryExists inbox ".|${thisInboxItemName}$" ; then
     logPrint error "Inbox item already exists: '${thisInboxItemName}'"
     exit 1
   fi
@@ -577,7 +770,7 @@ inboxDelete() {
 
   thisInboxItemName="${@}"
 
-  if ! databaseTableCheckEntryExists inbox "|${thisInboxItemName}$" ; then
+  if ! databaseTableCheckEntryExists inbox ".|${thisInboxItemName}$" ; then
     logPrint error "Item '${thisInboxItemName}' not found in Inbox"
     exit 1
   fi
@@ -936,11 +1129,11 @@ syntaxShow() {
   echo
   echo -e "${colorBold}${colorLightGreen}Quick commands:${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}add${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Add an item to the inbox${colorReset}"
-  # echo
+  echo
   echo -e "${colorBold}${colorLightGreen}Basic commands:${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}completed${colorReset}     ${colorDim}- List of completed items${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}event${colorReset}         ${colorDim}- Event operations${colorReset}"
-  # echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
   # echo -e "  ${colorUnderline}${colorLightMagenta}list${colorReset}          ${colorDim}- List of next items${colorReset}"
   # echo -e "  ${colorUnderline}${colorLightMagenta}search${colorReset}        ${colorDim}- Search items in database${colorReset}"
@@ -976,7 +1169,7 @@ taskAdd() {
     exit 1
   fi
 
-  if databaseTableCheckEntryExists task "|${thisTaskName}$" ; then
+  if databaseTableCheckEntryExists task ".|${thisTaskName}$" ; then
     logPrint error "Task already exists: '${thisTaskName}'"
     exit 1
   fi
@@ -998,7 +1191,7 @@ taskComplete() {
 
   thisTaskName="${@}"
 
-  if ! databaseTableCheckEntryExists task "|${thisTaskName}$" ; then
+  if ! databaseTableCheckEntryExists task ".|${thisTaskName}$" ; then
     logPrint error "Task not found: '${thisTaskName}'"
     exit 1
   fi
@@ -1027,7 +1220,7 @@ taskDelete() {
 
   thisTaskName="${@}"
 
-  if ! databaseTableCheckEntryExists task "|${thisTaskName}$" ; then
+  if ! databaseTableCheckEntryExists task ".|${thisTaskName}$" ; then
     logPrint error "Task not found: '${thisTaskName}'"
     exit 1
   fi
@@ -1167,9 +1360,6 @@ case ${usrCommand} in
     databaseCheckIfExists
     completedList
     ;;
-  # "habit")
-  #   habitList
-  #   ;;
   "decide")
     databaseCheckIfExists
     interactiveDecide
@@ -1177,6 +1367,10 @@ case ${usrCommand} in
   "event")
     databaseCheckIfExists
     eventRouter "${@}"
+    ;;
+  "habit")
+    databaseCheckIfExists
+    habitRouter "${@}"
     ;;
   "inbox")
     databaseCheckIfExists
