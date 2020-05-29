@@ -229,6 +229,44 @@ databaseTableList() {
 
 }
 
+databaseTableListFilter() {
+
+  logPrint debug "Database => Listing with Filter"
+
+  if [ ! "${3}" ]; then
+    logPrint error "Missing at least one of the required arguments"
+    exit 1
+  fi
+
+  # Assigning the user args
+  thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
+  thisString="${1}" ; shift ; logPrint debug "String => ${thisString}"
+  thisKey="${1}"    ; shift ; logPrint debug "Key => ${thisKey}"
+
+  # Header
+  echo -e "${colorBold}${colorUnderline}${colorLightGreen}${thisTable^}${colorReset} ${colorDim}(results for '${thisString}')${colorReset}"
+  echo
+
+  # Looping through each entry
+  IFS=$'\n'
+  for entry in $(grep -i "${thisString}" "${databasePath}/${thisTable}.db"); do
+
+    # Key
+    echo -en "${thisPrefix}${colorBold}`echo "${entry}" | cut -d'|' -f${thisKey}`${colorReset}"
+
+    # Additional/optional fields
+    unset IFS
+    for field in $@; do
+      echo -n " `echo "${entry}" | cut -d'|' -f$field`"
+    done
+
+    # New line
+    echo
+
+  done
+
+}
+
 databaseTableSort() {
 
   logPrint debug "Sorting table entries"
@@ -862,7 +900,7 @@ inboxAdd() {
     exit 1
   fi
 
-  if databaseTableInsert inbox "-" "`timestampGetNow`" "${thisInboxItemName}" ; then
+  if databaseTableInsert inbox "-->" "`timestampGetNow`" "${thisInboxItemName}" ; then
     logPrint info "New inbox item: '${thisInboxItemName}'"
   else
     logPrint error "Failed to add inbox item: '${thisInboxItemName}'"
@@ -1147,38 +1185,25 @@ systemLink() {
 # Item #
 ########
 
-itemAdd() {
+itemSearch() {
+  
+  logPrint debug "Searching items"
 
+  ## Input
   if [ "${1}" ]; then
-    thisItemName="${@}"
+    thisSearchTerm="${1}" ; shift ; logPrint debug "Term => ${thisSearchTerm}"
   else
-    logPrint error "You need to inform the item name"
+    logPrint error "Missing search term"
     exit 1
   fi
 
-  logPrint debug "Adding item => ${thisItemName}"
+  ## Output
+  databaseTableListFilter inbox "${thisSearchTerm}" 1 3       ; echo
+  databaseTableListFilter event "${thisSearchTerm}" 1 2 3     ; echo
+  databaseTableListFilter task "${thisSearchTerm}" 1 4        ; echo
+  databaseTableListFilter habit "${thisSearchTerm}" 1 5 3 6   ; echo
+  databaseTableListFilter completed "${thisSearchTerm}" 1 2 3 ; echo
 
-  echo "[ ]:0:${thisItemName}" >> "${databaseItems}"
-  thisRC=$?
-
-  if [ $thisRC -eq 0 ]; then
-    logPrint info "Added item [${thisItemName}]"
-  else
-    logPrint error "Failed to add item [${thisItemName}] to the database"
-    exit 1
-  fi
-
-}
-
-itemCount() {
-
-  cat "${databaseItems}" | wc -l | tr -d ' '
-
-}
-
-itemList() {
-  echo -e "${colorBold}${colorUnderline}Miniplan - List:${colorReset} ${colorDarkGray}(10 first)${colorReset}" ; echo
-  echo -e "$(head -n 10 ${databaseItems})"
 }
 
 #######
@@ -1244,8 +1269,7 @@ syntaxShow() {
   echo -e "  ${colorUnderline}${colorLightMagenta}event${colorReset}         ${colorDim}- Event operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
-  # echo -e "  ${colorUnderline}${colorLightMagenta}list${colorReset}          ${colorDim}- List of next items${colorReset}"
-  # echo -e "  ${colorUnderline}${colorLightMagenta}search${colorReset}        ${colorDim}- Search items in database${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}search${colorReset} ${colorUnderline}term${colorReset}   ${colorDim}- Search items in database${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}task${colorReset}          ${colorDim}- Task operations${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Interactive commands:${colorReset}"
@@ -1492,6 +1516,10 @@ case ${usrCommand} in
   "review")
     databaseCheckIfExists
     interactiveReview
+    ;;
+  "search")
+    databaseCheckIfExists
+    itemSearch "${@}"
     ;;
   "task")
     databaseCheckIfExists
