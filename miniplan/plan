@@ -98,6 +98,19 @@ databaseTableCheckEntryExists() {
 
 }
 
+databaseTableCount() {
+
+  if [ "${1}" ]; then
+    thisTable="${1}" ; shift
+  else
+    logPrint error "Missing table name"
+    exit 1
+  fi
+
+  wc -l "${databasePath}/${thisTable}.db" | awk '{print $1}'
+
+}
+
 databaseTableDeleteByString() {
 
   logPrint debug "Database => Deleting entry by string"
@@ -144,6 +157,20 @@ databaseTableGetByString() {
 
   ## Output
   grep "${thisString}" "${databasePath}/${thisTable}.db"
+
+}
+
+databaseTableGetFirst() {
+
+  ## Input
+  if [ $1 ]; then
+    thisTable=$1  ; shift
+  else
+    logPrint error "Missing table name"
+  fi
+
+  ## Output
+  head -n 1 "${databasePath}/${thisTable}.db"
 
 }
 
@@ -1036,8 +1063,8 @@ interactiveDecideDraw() {
   echo
   echo -e "Progress: ${colorBold}[${colorBgLightGreen}                                                               ${colorReset}     ${colorBold}]${colorReset}"
   echo
-  echo -e "  1. ${colorLightYellow}[>] Write a book${colorReset}"
-  echo -e "  2. ${colorLightYellow}[ ] Update LinkedIn${colorReset}"
+  echo -e "  1. ${colorLightYellow}[ ] Not available${colorReset}"
+  echo -e "  2. ${colorLightYellow}[ ] Come back soon =)${colorReset}"
   echo
   echo -e "${colorDim}Actions: ${colorUnderline}1${colorReset}${colorDim} | ${colorUnderline}2${colorReset}${colorDim} | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}d${colorReset}${colorDim}ecision"
   echo
@@ -1051,6 +1078,8 @@ interactiveReview() {
   usrChoice=""
 
   while [ true ]; do
+
+    statsGet
 
     interactiveReviewDraw
 
@@ -1086,7 +1115,7 @@ interactiveReviewDraw() {
   echo
   echo -e "Inbox ${colorDim}(5)${colorReset}"
   echo
-  echo -e "  => ${colorBold}${colorLightGreen}Practice on Duolingo${colorReset}"
+  echo -e "${nextInboxKey} ${colorBold}${colorLightGreen}${nextInboxItemName}${colorReset}"
   echo
   echo -e "${colorDim}Actions: ${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete${colorReset}"
   echo
@@ -1100,6 +1129,8 @@ interactiveWork() {
   usrChoice=""
 
   while [ true ]; do
+
+    statsGet
 
     interactiveWorkDraw
 
@@ -1133,16 +1164,16 @@ interactiveWorkDraw() {
   echo
   echo -e "${colorDim}--------------------------------------------------------------------------------${colorReset}"
   echo
-  echo -e "Next Items ${colorDim}${colorLightGray}(${colorLightGreen}5${colorLightGray}/${colorLightMagenta}2${colorLightGray}/${colorLightYellow}14${colorLightGray}/${colorLightCyan}4${colorLightGray})${colorReset}"
+  echo -e "Next Items ${colorDim}${colorLightGray}(${colorLightGreen}${inboxCount}${colorLightGray}/${colorLightMagenta}${eventCount}${colorLightGray}/${colorLightYellow}${taskCount}${colorLightGray}/${colorLightCyan}${habitCount}${colorLightGray})${colorReset}"
   echo
-  echo -e "  Event   : ${colorBold}${colorLightMagenta}[E] Next Event${colorReset}"
+  echo -e "  Event   : ${colorBold}${colorLightMagenta}${nextEventKey} ${nextEventName}${colorReset}"
   echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}e${colorReset}${colorDim}vent${colorReset}"
   echo
-  echo -e "  Task    : ${colorBold}${colorLightYellow}[ ] Next Task${colorReset}"
+  echo -e "  Task    : ${colorBold}${colorLightYellow}${nextTaskKey} ${nextTaskName}${colorReset}"
   echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}t${colorReset}${colorDim}ask"
   echo -e "            ${colorUnderline}p${colorReset}${colorDim}roject${colorReset}"
   echo
-  echo -e "  Habit   : ${colorBold}${colorLightCyan}[H] Next Habit${colorReset}"
+  echo -e "  Habit   : ${colorBold}${colorLightCyan}${nextHabitKey} ${nextHabitName}${colorReset}"
   echo -e "${colorDim}  Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}h${colorReset}${colorDim}abit${colorReset}"
   echo
   echo -e "${colorDim}Global actions: ${colorUnderline}a${colorReset}${colorDim}dd (inbox) | ${colorUnderline}s${colorReset}${colorDim}ync | ${colorUnderline}q${colorReset}${colorDim}uit${colorReset}"
@@ -1248,6 +1279,39 @@ logTest() {
   logPrint warn "Test message"
   logPrint error "Test message"
   logPrint user "Test message"
+}
+
+#########
+# Stats #
+#########
+
+statsGet() {
+
+  # Inbox
+  inboxCount=`databaseTableCount inbox`
+  nextInbox=`databaseTableGetFirst inbox`
+  nextInboxKey=`echo "${nextInbox}" | cut -d'|' -f1`
+  nextInboxItemName=`echo "${nextInbox}" | cut -d'|' -f3`
+
+  # Event
+  eventCount=`databaseTableCount event`
+  nextEvent=`databaseTableGetFirst event`
+  nextEventKey=`echo "${nextEvent}" | cut -d'|' -f1`
+  nextEventName=`echo "${nextEvent}" | cut -d'|' -f3`
+  nextEventTimestamp=`echo "${nextEvent}" | cut -d'|' -f2`
+
+  # Task
+  taskCount=`databaseTableCount task`
+  nextTask=`databaseTableGetFirst task`
+  nextTaskKey=`echo "${nextTask}" | cut -d'|' -f1`
+  nextTaskName=`echo "${nextTask}" | cut -d'|' -f4`
+
+  # Habit
+  habitCount=`databaseTableCount habit`
+  nextHabit=`databaseTableGetFirst habit`
+  nextHabitKey=`echo "${nextHabit}" | cut -d'|' -f1`
+  nextHabitName=`echo "${nextHabit}" | cut -d'|' -f6`
+
 }
 
 ##########
