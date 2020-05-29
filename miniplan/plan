@@ -76,6 +76,18 @@ databaseCreate() {
 
 }
 
+databaseSync() {
+
+  logPrint debug "Starting sync process"
+
+  cd "${databasePath}"                                ; systemCheckReturnCode "Database - OK" "Database not found at '${databasePath}'"
+  git pull                                            > /dev/null 2>&1  ; systemCheckReturnCode "Pulling remote changes - OK" "Failed to pull from git repository"
+  git add .                                           > /dev/null 2>&1  ; systemCheckReturnCode "Adding local changes - OK" "Failed to add database for commit"
+  git commit -m "Database update - `timestampGetNow`" > /dev/null 2>&1  # This step is not checked (it fails when there are no changes)
+  git push                                            > /dev/null 2>&1  ; systemCheckReturnCode "Pushing to repository - OK" "Failed to push to git repository"
+
+}
+
 databaseTableCheckEntryExists() {
 
   logPrint debug "Checking if an entry exists in a column of a table"
@@ -919,18 +931,20 @@ inboxAdd() {
     thisInboxItemName="${@}"  ; logPrint debug "${thisInboxItemName}"
   else
     logPrint error "Missing inbox item name"
-    exit 1
+    return 1
   fi
 
   if databaseTableCheckEntryExists inbox ".|${thisInboxItemName}$" ; then
     logPrint error "Inbox item already exists: '${thisInboxItemName}'"
-    exit 1
+    return 1
   fi
 
   if databaseTableInsert inbox "=>" "`timestampGetNow`" "${thisInboxItemName}" ; then
     logPrint info "New inbox item: '${thisInboxItemName}'"
+    return 0
   else
     logPrint error "Failed to add inbox item: '${thisInboxItemName}'"
+    return 1
   fi
 
 }
@@ -1073,8 +1087,27 @@ interactiveDecideDraw() {
 
 }
 
+interactiveInboxAdd() {
+
+  # Cleaning in memory variable
+  thisInboxItemName=""
+
+  # Asking user for inbox item name
+  while [ -z "${thisInboxItemName}" ]; do
+    clear
+    read -p "Inbox item name => " thisInboxItemName
+  done
+  
+  # Adding inbox item
+  inboxAdd "${thisInboxItemName}"
+
+  "${usrMode}"
+
+}
+
 interactiveReview() {
 
+  usrMode="interactiveReview"
   usrChoice=""
 
   while [ true ]; do
@@ -1084,14 +1117,17 @@ interactiveReview() {
     interactiveReviewDraw
 
     case "${usrChoice}" in
-      "decide"|"d")
+      "a"|"add")
+        interactiveInboxAdd
+        ;;
+      "d"|"decide")
         interactiveDecide
         ;;
-      "work"|"w")
+      "w"|"work")
         interactiveWork
         ;;
-      "quit"|"q")
-        exit 0
+      "q"|"quit")
+        logPrint info "Good review. Bye!" ; exit 0
         ;;
       *)
         true
@@ -1113,11 +1149,11 @@ interactiveReviewDraw() {
   echo
   echo -e "${colorDim}--------------------------------------------------------------------------------${colorReset}"
   echo
-  echo -e "Inbox ${colorDim}(5)${colorReset}"
+  echo -e "Inbox ${colorDim}(${colorLightGreen}${inboxCount})${colorReset}"
   echo
   echo -e "${nextInboxKey} ${colorBold}${colorLightGreen}${nextInboxItemName}${colorReset}"
   echo
-  echo -e "${colorDim}Actions: ${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete${colorReset}"
+  echo -e "${colorDim}Actions: ${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}i${colorReset}${colorDim}tem${colorReset}"
   echo
   echo -e "${colorDim}Global actions: ${colorUnderline}a${colorReset}${colorDim}dd (inbox) | ${colorUnderline}s${colorReset}${colorDim}ync | ${colorUnderline}q${colorReset}${colorDim}uit${colorReset}"
   echo
@@ -1192,7 +1228,7 @@ systemCheckReturnCode() {
   thisStringError="${2}"
 
   if [ $thisRC -eq 0 ]; then
-    logPrint debug "${thisStringOK}"
+    logPrint info "${thisStringOK}"
   else
     logPrint error "${thisStringError}"
     exit 1
@@ -1334,6 +1370,7 @@ syntaxShow() {
   echo -e "  ${colorUnderline}${colorLightMagenta}habit${colorReset}         ${colorDim}- Habit operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}inbox${colorReset}         ${colorDim}- Inbox operations${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}search${colorReset} ${colorUnderline}term${colorReset}   ${colorDim}- Search items in database${colorReset}"
+  echo -e "  ${colorUnderline}${colorLightMagenta}sync${colorReset}          ${colorDim}- Sync database using Git${colorReset}"
   echo -e "  ${colorUnderline}${colorLightMagenta}task${colorReset}          ${colorDim}- Task operations${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Interactive commands:${colorReset}"
@@ -1592,6 +1629,10 @@ case ${usrCommand} in
   "search")
     databaseCheckIfExists
     itemSearch "${@}"
+    ;;
+  "sync")
+    databaseCheckIfExists
+    databaseSync
     ;;
   "task")
     databaseCheckIfExists
