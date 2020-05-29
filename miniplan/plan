@@ -320,7 +320,7 @@ databaseTableSort() {
   esac
 
   ## Output
-  if sort "${databasePath}/${thisTable}.db" --field-separator '|' --key ${thisColumn} ${thisOrderCommand} --output="${databasePath}/${thisTable}.db" ; then
+  if sort "${databasePath}/${thisTable}.db" --field-separator "|" --key "${thisColumn}" ${thisOrderCommand} --output="${databasePath}/${thisTable}.db" ; then
     logPrint debug "Table sorted"
   else
     logPrint debug "Failed to sort table"
@@ -655,14 +655,14 @@ habitAdd() {
   fi
 
   # Adding the habit
-  if databaseTableInsert habit "[H]" "${thisHabitRecurrenceOrder}" "${thisHabitRecurrenceString}" "1999-01-01 00:00 00" "[ ]" "${thisHabitName}" ; then
+  if databaseTableInsert habit "[H]" "${thisHabitRecurrenceOrder}" "${thisHabitRecurrenceString}" "1970-01-01 00:00 00" "[ ]" "${thisHabitName}" ; then
     logPrint info "New habit created: '${thisHabitName}'"
   else
     logPrint error "Failed to create habit: '${thisHabitName}'"
   fi
 
   # Sorting the habit table by recurrence and date
-  databaseTableSort habit "2,6" asc
+  databaseTableSort habit 2 asc
 
 }
 
@@ -927,7 +927,7 @@ inboxAdd() {
     exit 1
   fi
 
-  if databaseTableInsert inbox "-->" "`timestampGetNow`" "${thisInboxItemName}" ; then
+  if databaseTableInsert inbox "=>" "`timestampGetNow`" "${thisInboxItemName}" ; then
     logPrint info "New inbox item: '${thisInboxItemName}'"
   else
     logPrint error "Failed to add inbox item: '${thisInboxItemName}'"
@@ -1166,7 +1166,7 @@ interactiveWorkDraw() {
   echo
   echo -e "Next Items ${colorDim}${colorLightGray}(${colorLightGreen}${inboxCount}${colorLightGray}/${colorLightMagenta}${eventCount}${colorLightGray}/${colorLightYellow}${taskCount}${colorLightGray}/${colorLightCyan}${habitCount}${colorLightGray})${colorReset}"
   echo
-  echo -e "  Event   : ${colorBold}${colorLightMagenta}${nextEventKey} ${nextEventName}${colorReset}"
+  echo -e "  Event   : ${colorBold}${colorLightMagenta}${nextEventKey} ${nextEventName}${colorReset} (${nextEventTimestamp})"
   echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}e${colorReset}${colorDim}vent${colorReset}"
   echo
   echo -e "  Task    : ${colorBold}${colorLightYellow}${nextTaskKey} ${nextTaskName}${colorReset}"
@@ -1576,6 +1576,14 @@ case ${usrCommand} in
   "inbox")
     databaseCheckIfExists
     inboxRouter "${@}"
+    ;;
+  "list")
+    databaseCheckIfExists
+    inboxList     ; echo
+    eventList     ; echo
+    taskList      ; echo
+    habitList     ; echo
+    completedList ; echo
     ;;
   "review")
     databaseCheckIfExists
