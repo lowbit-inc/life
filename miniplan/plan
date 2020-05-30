@@ -1366,10 +1366,10 @@ interactiveWork() {
         eventDelete "${nextEventName}"
         "${usrMode}"
         ;;
-      # "dh"|"delete-habit")
-      #   habitDelete "${nextHabitName}"
-      #   "${usrMode}"
-      #   ;;
+      "dh"|"delete-habit")
+        habitDelete "${nextHabitName}"
+        "${usrMode}"
+        ;;
       "dt"|"delete-task")
         taskDelete "${nextTaskName}"
         "${usrMode}"
