@@ -165,6 +165,7 @@ databaseTableGetByString() {
     thisString=$1 ; shift
   else
     logPrint error "Missing one of required arguments"
+    return 1
   fi
 
   ## Output
@@ -306,6 +307,47 @@ databaseTableListFilter() {
 
 }
 
+databaseTableShuffle() {
+
+  logPrint debug "Shuffling table entries"
+
+  ## Input
+  if [ $1 ]; then
+    thisTable="${1}" ; shift ; logPrint debug "Table => ${thisTable}"
+  fi
+
+  ## Output
+  if sort "${databasePath}/${thisTable}.db" --random-sort --output="${databasePath}/${thisTable}.db" ; then
+    logPrint debug "Table shuffled"
+    return 0
+  else
+    logPrint debug "Failed to shuffle table"
+    return 1
+  fi
+  
+}
+
+databaseTableSkip() {
+
+  logPrint debug "Skipping item in database"
+
+  ## Input
+  if [ "${1}" ]; then
+    thisTable="${1}" ; shift ; logPrint debug "Table => ${thisTable}"
+  else
+    logPrint error "Missing table name"
+    return 1
+  fi
+
+  # Copying first entry of "database" to the end of the file
+  head -n1 "${databasePath}/${thisTable}.db" >> "${databasePath}/${thisTable}.db"
+
+  # Deleting first entry from the "database"
+  sed -i .bkp '1d' "${databasePath}/${thisTable}.db"
+
+
+}
+
 databaseTableSort() {
 
   logPrint debug "Sorting table entries"
@@ -332,10 +374,12 @@ databaseTableSort() {
   esac
 
   ## Output
-  if sort "${databasePath}/${thisTable}.db" --field-separator "|" --key "${thisColumn}" ${thisOrderCommand} --output="${databasePath}/${thisTable}.db" ; then
+  if sort "${databasePath}/${thisTable}.db" -s --field-separator "|" --key "${thisColumn}" ${thisOrderCommand} --output="${databasePath}/${thisTable}.db" ; then
     logPrint debug "Table sorted"
+    return 0
   else
     logPrint debug "Failed to sort table"
+    return 1
   fi
   
 }
@@ -355,7 +399,7 @@ databaseTableUpdateEntry() {
   fi
 
   # Updating the entry
-  if sed -i .bkp s/"${thisOldValue}"/"${thisNewValue}"/ "${databasePath}/${thisTable}.db" ; then
+  if sed -i .bkp s^"${thisOldValue}"^"${thisNewValue}"^ "${databasePath}/${thisTable}.db" ; then
     logPrint debug "OK - entry updated"
     return 0
   else
@@ -473,7 +517,7 @@ eventAdd() {
     thisEventName="${@}"  ; logPrint debug "Event Name => ${thisEventName}"
   else
     logPrint error "Missing one of required arguments"
-    exit 1
+    return 1
   fi
 
   # Validating the date arg
@@ -485,7 +529,7 @@ eventAdd() {
   # Validating if an event with the same name already exists
   if databaseTableCheckEntryExists event ".|${thisEventName}$" ; then
     logPrint error "Event already exists: '${thisEventName}'"
-    exit 1
+    return 1
   fi
 
   # Adding the event
@@ -633,7 +677,7 @@ habitAdd() {
     thisHabitName="${@}"        ; logPrint debug "Habit Name => ${thisHabitName}"
   else
     logPrint error "Missing one of required arguments"
-    exit 1
+    return 1
   fi
 
   # Validating recurrence arg
@@ -656,14 +700,14 @@ habitAdd() {
       ;;
     *)
       logPrint error "Wrong value for 'recurrence' argument"
-      exit 1
+      return 1
       ;;
   esac
 
   # Validating if a habit with the same name already exists
   if databaseTableCheckEntryExists habit ".|${thisHabitName}$" ; then
     logPrint error "Habit already exists: '${thisHabitName}'"
-    exit 1
+    return 1
   fi
 
   # Adding the habit
@@ -672,9 +716,6 @@ habitAdd() {
   else
     logPrint error "Failed to create habit: '${thisHabitName}'"
   fi
-
-  # Sorting the habit table by recurrence and date
-  databaseTableSort habit 2 asc
 
 }
 
@@ -685,7 +726,7 @@ habitComplete() {
     thisHabitName="${@}"  ; logPrint debug "Habit name => ${thisHabitName}"
   else
     logPrint error "Missing habit name"
-    exit 1
+    return 1
   fi
 
   ## Processing
@@ -753,6 +794,7 @@ habitList() {
   # Refreshing the habits before listing
   habitRefresh
 
+  databaseTableSort habit 2,2 asc
   databaseTableList habit 1000 asc 1 5 3 6
 
 }
@@ -771,6 +813,13 @@ habitShowUsage() {
   echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}                      ${colorDim}- List habits${colorReset}"
   echo
   exit 0
+
+}
+
+habitShuffle() {
+
+  databaseTableShuffle habit        # Shuffling habits
+  databaseTableSort habit 5,5 asc   # Sorting habits by completion (pending habits will be in the begining of table)
 
 }
 
@@ -953,7 +1002,7 @@ inboxDelete() {
 
   if [ ! "${1}" ]; then
     logPrint error "Missing inbox item name"
-    exit 1
+    return 1
   fi
 
   thisInboxItemName="${@}"
@@ -1036,6 +1085,7 @@ inboxShowUsage() {
 
 interactiveDecide() {
 
+  usrMode="interactiveDecide"
   usrChoice=""
 
   while [ true ]; do
@@ -1043,15 +1093,24 @@ interactiveDecide() {
     interactiveDecideDraw
 
     case "${usrChoice}" in
-      "review"|"r")
+      # Modes
+      "r"|"review")
         interactiveReview
         ;;
-      "work"|"w")
+      "w"|"work")
         interactiveWork
         ;;
-      "quit"|"q")
-        exit 0
+      # Global Actions
+      "a"|"add")
+        interactiveInboxAdd   ; "${usrMode}"
         ;;
+      "s"|"sync")
+        clear ; databaseSync  ; "${usrMode}"
+        ;;
+      "q"|"quit")
+        logPrint info "Good decision. Bye!" ; exit 0
+        ;;
+      # Local Actions
       *)
         true
         ;;
@@ -1067,11 +1126,9 @@ interactiveDecideDraw() {
 
   clear
 
-  echo -e "${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition)${colorReset}"
-  echo -e
-  echo -e "${colorBold}Modes${colorReset}: ${colorUnderline}r${colorReset}eview ${colorDim}|${colorReset} ${colorBgLightRed}${colorUnderline}d${colorReset}${colorBgLightRed}ecide${colorReset} ${colorDim}|${colorReset} ${colorUnderline}w${colorReset}ork${colorReset}"
-  echo
-  echo -e "${colorDim}--------------------------------------------------------------------------------${colorReset}"
+  echo -e "${colorDim}+-----------------------${colorReset} ${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition) ${colorDim}------------------------+${colorReset}"
+  echo -e "${colorDim}|                                                                              |${colorReset}"
+  echo -e "${colorDim}+-----------------------${colorReset} ${colorBold}Modes${colorReset}: ${colorUnderline}r${colorReset}eview ${colorDim}|${colorReset} ${colorBgLightRed}${colorUnderline}d${colorReset}${colorBgLightRed}ecide${colorReset} ${colorDim}|${colorReset} ${colorUnderline}w${colorReset}ork${colorReset} ${colorDim}------------------------+${colorReset}"
   echo
   echo -e "Decision ${colorDim}(9/10)${colorReset}"
   echo
@@ -1101,7 +1158,87 @@ interactiveInboxAdd() {
   # Adding inbox item
   inboxAdd "${thisInboxItemName}"
 
-  "${usrMode}"
+  # "${usrMode}"
+
+}
+
+interactiveInboxToEvent() {
+
+  # Cleaning in memory variables
+  thisEventDate=""
+  thisEventTime=""
+  isValidDate=""
+  isValidTime=""
+
+  # Asking user for event date
+  while [ "${isValidDate}" != "true" ]; do
+
+    clear
+    read -p "Event date (YYYY-MM-DD) => " thisEventDate
+
+    if timestampValidateDate "${thisEventDate}" ; then
+      isValidDate="true"
+    fi
+
+  done
+
+  # Asking user for event time
+  while [ "${isValidTime}" != "true" ]; do
+
+    clear
+    read -p "Event time (HH:MM) => " thisEventTime
+
+    if timestampValidateTime "${thisEventTime}" ; then
+      isValidTime="true"
+    fi
+
+  done
+
+  # Adding event
+  eventAdd "${thisEventDate}" "${thisEventTime}" "${nextInboxItemName}"
+
+  # Deleting inbox item
+  inboxDelete "${nextInboxItemName}"
+
+}
+
+interactiveInboxToHabit() {
+
+  # Cleaning in memory variables
+  thisHabitRecurrence=""
+  isValidRecurrence=""
+
+  # Asking user for habit recurrence
+  while [ "${isValidRecurrence}" != "true" ]; do
+
+    clear
+    read -p "Habit frequency (daily/weekly/monthly/yearly) => " thisHabitRecurrence
+
+    case "${thisHabitRecurrence}" in
+      "daily")
+        isValidRecurrence="true"
+        ;;
+      "weekly")
+        isValidRecurrence="true"
+        ;;
+      "monthly")
+        isValidRecurrence="true"
+        ;;
+      "yearly")
+        isValidRecurrence="true"
+        ;;
+      *)
+        isValidRecurrence="false"
+        ;;
+    esac
+
+  done
+
+  # Adding habit
+  habitAdd "${thisHabitRecurrence}" "${nextInboxItemName}"
+
+  # Deleting inbox item
+  inboxDelete "${nextInboxItemName}"
 
 }
 
@@ -1117,17 +1254,38 @@ interactiveReview() {
     interactiveReviewDraw
 
     case "${usrChoice}" in
-      "a"|"add")
-        interactiveInboxAdd
-        ;;
+      # Modes
       "d"|"decide")
         interactiveDecide
         ;;
       "w"|"work")
         interactiveWork
         ;;
+      # Global Actions
+      "a"|"add")
+        interactiveInboxAdd     ; "${usrMode}"
+        ;;
+      "s"|"sync")
+        clear ; databaseSync    ; "${usrMode}"
+        ;;
       "q"|"quit")
         logPrint info "Good review. Bye!" ; exit 0
+        ;;
+      # Local Actions
+      "di"|"delete-item")
+        inboxDelete "${nextInboxItemName}"
+        "${usrMode}"
+        ;;
+      "e"|"event")
+        interactiveInboxToEvent ; "${usrMode}"
+        ;;
+      "h"|"habit")
+        interactiveInboxToHabit ; "${usrMode}"
+        ;;
+      "t"|"task")
+        taskAdd "${nextInboxItemName}"
+        inboxDelete "${nextInboxItemName}"
+        "${usrMode}"
         ;;
       *)
         true
@@ -1143,13 +1301,11 @@ interactiveReviewDraw() {
 
   clear
 
-  echo -e "${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition)${colorReset}"
+  echo -e "${colorDim}+-----------------------${colorReset} ${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition) ------------------------+${colorReset}"
+  echo -e "${colorDim}|                                                                              |${colorReset}"
+  echo -e "${colorDim}+-----------------------${colorReset} ${colorBold}Modes${colorReset}: ${colorBgLightRed}${colorUnderline}r${colorReset}${colorBgLightRed}eview${colorReset} ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}ecide ${colorDim}|${colorReset} ${colorUnderline}w${colorReset}ork${colorReset} ${colorDim}------------------------+${colorReset}"
   echo
-  echo -e "${colorBold}Modes${colorReset}: ${colorBgLightRed}${colorUnderline}r${colorReset}${colorBgLightRed}eview${colorReset} ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}ecide ${colorDim}|${colorReset} ${colorUnderline}w${colorReset}ork${colorReset}"
-  echo
-  echo -e "${colorDim}--------------------------------------------------------------------------------${colorReset}"
-  echo
-  echo -e "Inbox ${colorDim}(${colorLightGreen}${inboxCount})${colorReset}"
+  echo -e "Inbox ${colorDim}(${colorLightGreen}${inboxCount}${colorReset}${colorDim})${colorReset}"
   echo
   echo -e "${nextInboxKey} ${colorBold}${colorLightGreen}${nextInboxItemName}${colorReset}"
   echo
@@ -1162,7 +1318,12 @@ interactiveReviewDraw() {
 
 interactiveWork() {
 
+  # Initializing variables
+  usrMode="interactiveWork"
   usrChoice=""
+
+  # Grabbing a habit
+  habitShuffle
 
   while [ true ]; do
 
@@ -1171,14 +1332,55 @@ interactiveWork() {
     interactiveWorkDraw
 
     case "${usrChoice}" in
-      "decide"|"d")
+      # Modes
+      "d"|"decide")
         interactiveDecide
         ;;
-      "review"|"r")
+      "r"|"review")
         interactiveReview
         ;;
-      "quit"|"q")
-        exit 0
+      # Global Actions
+      "a"|"add")
+        interactiveInboxAdd   ; "${usrMode}"
+        ;;
+      "s"|"sync")
+        clear ; databaseSync  ; "${usrMode}"
+        ;;
+      "q"|"quit")
+        logPrint info "Good work. Bye!" ; exit 0
+        ;;
+      # Local Actions
+      "ce"|"complete-event")
+        eventComplete "${nextEventName}"
+        "${usrMode}"
+        ;;
+      "ch"|"complete-habit")
+        habitComplete "${nextHabitName}"
+        "${usrMode}"
+        ;;
+      "ct"|"complete-task")
+        taskComplete "${nextTaskName}"
+        "${usrMode}"
+        ;;
+      "de"|"delete-event")
+        eventDelete "${nextEventName}"
+        "${usrMode}"
+        ;;
+      # "dh"|"delete-habit")
+      #   habitDelete "${nextHabitName}"
+      #   "${usrMode}"
+      #   ;;
+      "dt"|"delete-task")
+        taskDelete "${nextTaskName}"
+        "${usrMode}"
+        ;;
+      "sh"|"skip-habit")
+        habitShuffle
+        "${usrMode}"
+        ;;
+      "st"|"skip-task")
+        databaseTableSkip task
+        "${usrMode}"
         ;;
       *)
         true
@@ -1194,11 +1396,9 @@ interactiveWorkDraw() {
 
   clear
 
-  echo -e "${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition)${colorReset}"
-  echo
-  echo -e "${colorBold}Modes${colorReset}: ${colorUnderline}r${colorReset}eview ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}ecide ${colorDim}|${colorReset} ${colorBgLightRed}${colorUnderline}w${colorReset}${colorBgLightRed}ork${colorReset}"
-  echo
-  echo -e "${colorDim}--------------------------------------------------------------------------------${colorReset}"
+  echo -e "${colorDim}+-----------------------${colorReset} ${colorBold}Lowbit Planner${colorReset} ${colorDim}(Bash Edition) ------------------------+${colorReset}"
+  echo -e "${colorDim}|                                                                              |${colorReset}"
+  echo -e "${colorDim}+-----------------------${colorReset} ${colorBold}Modes${colorReset}: ${colorUnderline}r${colorReset}eview ${colorDim}|${colorReset} ${colorUnderline}d${colorReset}ecide ${colorDim}|${colorReset} ${colorBgLightRed}${colorUnderline}w${colorReset}${colorBgLightRed}ork${colorReset} ${colorDim}------------------------+${colorReset}"
   echo
   echo -e "Next Items ${colorDim}${colorLightGray}(${colorLightGreen}${inboxCount}${colorLightGray}/${colorLightMagenta}${eventCount}${colorLightGray}/${colorLightYellow}${taskCount}${colorLightGray}/${colorLightCyan}${habitCount}${colorLightGray})${colorReset}"
   echo
@@ -1206,8 +1406,7 @@ interactiveWorkDraw() {
   echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}e${colorReset}${colorDim}vent | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}e${colorReset}${colorDim}vent${colorReset}"
   echo
   echo -e "  Task    : ${colorBold}${colorLightYellow}${nextTaskKey} ${nextTaskName}${colorReset}"
-  echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}t${colorReset}${colorDim}ask"
-  echo -e "            ${colorUnderline}p${colorReset}${colorDim}roject${colorReset}"
+  echo -e "  ${colorDim}Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}t${colorReset}${colorDim}ask | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}t${colorReset}${colorDim}ask${colorReset}"
   echo
   echo -e "  Habit   : ${colorBold}${colorLightCyan}${nextHabitKey} ${nextHabitName}${colorReset}"
   echo -e "${colorDim}  Actions : ${colorUnderline}c${colorReset}${colorDim}omplete-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}s${colorReset}${colorDim}kip-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}a${colorReset}${colorDim}dd-${colorUnderline}h${colorReset}${colorDim}abit | ${colorUnderline}d${colorReset}${colorDim}elete-${colorUnderline}h${colorReset}${colorDim}abit${colorReset}"
@@ -1345,8 +1544,16 @@ statsGet() {
   # Habit
   habitCount=`databaseTableCount habit`
   nextHabit=`databaseTableGetFirst habit`
-  nextHabitKey=`echo "${nextHabit}" | cut -d'|' -f1`
-  nextHabitName=`echo "${nextHabit}" | cut -d'|' -f6`
+  nextHabitCompleted=`echo "${nextHabit}" | cut -d'|' -f5`
+
+  if [[ "${nextHabitCompleted}" == "[ ]" ]]; then
+    nextHabitKey=`echo "${nextHabit}" | cut -d'|' -f1`
+    nextHabitName=`echo "${nextHabit}" | cut -d'|' -f6`
+  else
+    unset nextHabitKey
+    unset nextHabitName
+  fi
+
 
 }
 
@@ -1400,12 +1607,12 @@ taskAdd() {
     thisTaskName="${@}" ; logPrint debug "${thisTaskName}"
   else
     logPrint error "Missing task name"
-    exit 1
+    return 1
   fi
 
   if databaseTableCheckEntryExists task ".|${thisTaskName}$" ; then
     logPrint error "Task already exists: '${thisTaskName}'"
-    exit 1
+    return 1
   fi
 
   if databaseTableInsert task "[ ]" "`timestampGetNow`" "0" "${thisTaskName}" ; then
@@ -1550,14 +1757,14 @@ timestampValidateDate() {
     thisDate="${1}" ; logPrint debug "Validating date => ${thisDate}"
   else
     logPrint error "Missing date argument to validate"
-    exit 1
+    return 1
   fi
 
   if [[ $(echo "${thisDate}" | grep -e "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$") ]] ; then
     return 0
   else
     logPrint error "Invalid date format - Must be YYYY-MM-DD"
-    exit 1
+    return 1
   fi
 
 }
@@ -1568,14 +1775,14 @@ timestampValidateTime() {
     thisTime="${1}" ; logPrint debug "Validating time => ${thisTime}"
   else
     logPrint error "Missing time argument to validate"
-    exit 1
+    return 1
   fi
 
   if [[ $(echo "${thisTime}" | grep -e "^[0-9][0-9]:[0-9][0-9]$") ]] ; then
     return 0
   else
     logPrint error "Invalid time format - Must be HH:MM"
-    exit 1
+    return 1
   fi
 
 }
