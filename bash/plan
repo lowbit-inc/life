@@ -137,7 +137,7 @@ databaseTableDeleteByString() {
   thisString="${1}" ; shift ; logPrint debug "String => ${thisTable}"
 
   # Deleting
-  sed -i .bkp "/${thisString}/d" "${databasePath}/${thisTable}.db"
+  sed --in-place=.bkp "/${thisString}/d" "${databasePath}/${thisTable}.db"
 
 }
 
@@ -153,7 +153,7 @@ databaseTableDeleteFirst() {
   # Assigning the user args
   thisTable="${1}"  ; shift ; logPrint debug "Table => ${thisTable}"
 
-  sed -i .bkp '1d' "${databasePath}/${thisTable}.db"
+  sed --in-place=.bkp '1d' "${databasePath}/${thisTable}.db"
 
 }
 
@@ -343,7 +343,7 @@ databaseTableSkip() {
   head -n1 "${databasePath}/${thisTable}.db" >> "${databasePath}/${thisTable}.db"
 
   # Deleting first entry from the "database"
-  sed -i .bkp '1d' "${databasePath}/${thisTable}.db"
+  sed --in-place=.bkp '1d' "${databasePath}/${thisTable}.db"
 
 
 }
@@ -399,7 +399,7 @@ databaseTableUpdateEntry() {
   fi
 
   # Updating the entry
-  if sed -i .bkp s^"${thisOldValue}"^"${thisNewValue}"^ "${databasePath}/${thisTable}.db" ; then
+  if sed --in-place=.bkp s^"${thisOldValue}"^"${thisNewValue}"^ "${databasePath}/${thisTable}.db" ; then
     logPrint debug "OK - entry updated"
     return 0
   else
@@ -429,7 +429,7 @@ doCompleteItem() {
 
 doDeleteItem() {
 
-  sed -i .bkp '1d' "${databaseItems}"
+  sed --in-place=.bkp '1d' "${databaseItems}"
 
 }
 
