@@ -61,9 +61,8 @@ helpUsage() {
   echo "  list"
   echo "  search"
   echo
-  echo "Interactive commands:"
-  echo "  plan"
-  echo "  work"
+  echo "Interactive command:"
+  echo "  start"
   echo
   echo "System commands:"
   echo "  install"
