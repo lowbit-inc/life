@@ -67,6 +67,7 @@ helpUsage() {
   echo "System commands:"
   echo "  install"
   echo "  config"
+  echo "  help"
   echo "  version"
   echo
 
