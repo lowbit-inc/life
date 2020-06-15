@@ -7,11 +7,12 @@
 configDirName="${HOME}/.lowbit/life/cli"
 configFileName="lowbit-life-cli.cfg"
 configPath="${configDirName}/${configFileName}"
+configTempFile="/tmp/lowbit-life-cli.cfg"
 
 configAssistant() {
 
   # Explaning things for the user
-  logPrint info "Starting the config file creation assistant"
+  logPrint info "Starting the config assistant"
   logPrint info "You will be asked some questions"
 
   # Creating path
@@ -19,22 +20,26 @@ configAssistant() {
   mkdir -p "${configDirName}"
 
   # Creating file
-  logPrint debug "Creating config file"
-  echo "# Lowbit Life - CLI - Config" > "${configPath}"
+  logPrint debug "Initializing temporary config file"
+  echo "# Lowbit Life - CLI - Config" > "${configTempFile}"
 
   # Question 1 - Backend type
   logPrint user "Question: Which backend type would you like to use?"
   while [ true ] ; do
     unset usrAnswer
-    read -p "Answer (valid options: api, git) => " usrAnswer
+    read -p "Answer (valid options: api, file, git) => " usrAnswer
 
     case "${usrAnswer}" in
       "api")
-        echo "backend=${usrAnswer}" >> "${configPath}"
+        echo "backend=${usrAnswer}" >> "${configTempFile}"
+        break
+        ;;
+      "file")
+        echo "backend=${usrAnswer}" >> "${configTempFile}"
         break
         ;;
       "git")
-        echo "backend=${usrAnswer}" >> "${configPath}"
+        echo "backend=${usrAnswer}" >> "${configTempFile}"
         break
         ;;
       *)
@@ -55,7 +60,7 @@ configAssistant() {
         logPrint error "Invalid answer - Try again..."
         ;;
       *)
-        echo "uri=${usrAnswer}" >> "${configPath}"
+        echo "uri=${usrAnswer}" >> "${configTempFile}"
         break
         ;;
     esac
@@ -66,13 +71,17 @@ configAssistant() {
   logPrint user "Question: What is your backend username?"
   unset usrAnswer
   read -p "Answer (leave blank for none) => " usrAnswer
-  echo "username=${usrAnswer}" >> "${configPath}"
+  echo "username=${usrAnswer}" >> "${configTempFile}"
 
   # Question 4 - Backend password
   logPrint user "Question: What is your backend password?"
   unset usrAnswer
   read -p "Answer (leave blank for none) => " usrAnswer
-  echo "password=${usrAnswer}" >> "${configPath}"
+  echo "password=${usrAnswer}" >> "${configTempFile}"
+
+  # Commiting config file
+  logPrint debug "Saving data to the config file"
+  mv "${configTempFile}" "${configPath}"
 
   # Final messages
   logPrint info "Your config file was generated at '${configPath}'"

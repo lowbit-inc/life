@@ -9,13 +9,19 @@ for lib in ./libs/*.sh ; do
   source $lib
 done
 
-# Sourcing used backend
-
 ##########
 # Config #
 ##########
 
+# Checking or creating user config, if needed
 configCheck
+
+###########
+# Backend #
+###########
+
+# Sourcing user backend
+backendLoad
 
 ##############
 # User Input #
