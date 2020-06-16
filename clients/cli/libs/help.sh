@@ -4,26 +4,27 @@
 # Help #
 ########
 
-helpShow() {
+# helpGetTopic() {
 
-  echo "Help Topics:"
-  echo "- Inbox"
-  echo "- Tasks"
-  echo "- Habits"
-  echo "- Events"
-  echo "- Quick Commands"
-  echo "- Legend"
-  echo "- Commands Usage"
-  echo "- Search"
-  echo "- Completed Items"
-  echo "- Interactive Modes"
-  echo "- Link"
-  echo "- Update"
-  echo "- Sync"
+#   echo "Help Topics:"
+#   echo "- Inbox"
+#   echo "- Tasks"
+#   echo "- Habits"
+#   echo "- Events"
+#   echo "- Quick Commands"
+#   echo "- Legend"
+#   echo "- Commands Usage"
+#   echo "- Search"
+#   echo "- Completed Items"
+#   echo "- Interactive Modes"
+#   echo "- Link"
+#   echo "- Update"
+#   echo "- Sync"
 
-}
+#   exit 0
+# }
 
-helpUsage() {
+helpGet() {
 
   echo "Lowbit Life - CLI"
   echo
@@ -62,12 +63,12 @@ helpUsage() {
   echo "  search"
   echo
   echo "Interactive command:"
-  echo "  start"
+  echo "  interactive"
   echo
   echo "System commands:"
-  echo "  install"
   echo "  config"
   echo "  help"
+  echo "  install"
   echo "  version"
   echo
 
@@ -75,7 +76,7 @@ helpUsage() {
 
 }
 
-helpUsageOld() {
+helpGetOld() {
 
   echo -e "${colorBold}Lowbit Planner - Bash Edition${colorReset}"
   echo

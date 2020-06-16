@@ -4,6 +4,8 @@
 # System #
 ##########
 
+systemVersion="v0.3.0"
+
 systemCheckReturnCode() {
 
   thisRC=$?
@@ -16,6 +18,19 @@ systemCheckReturnCode() {
     logPrint error "${thisStringError}"
     exit 1
   fi
+
+}
+
+systemGetVersion() {
+
+  echo "Lowbit Life - CLI - Version ${systemVersion}"
+  exit 0
+}
+
+systemInstall() {
+
+  logPrint error "Sorry, this feature is not yet available."
+  exit 1
 
 }
 
