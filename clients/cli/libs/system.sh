@@ -23,7 +23,7 @@ systemCheckReturnCode() {
 
 systemGetVersion() {
 
-  echo "Lowbit Life - CLI - Version ${systemVersion}"
+  echo "Lowbit Life - CLI (${systemVersion})"
   exit 0
 }
 
