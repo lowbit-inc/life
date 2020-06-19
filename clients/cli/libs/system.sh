@@ -4,6 +4,7 @@
 # System #
 ##########
 
+systemName="Lowbit Life - CLI"
 systemVersion="v0.3.0"
 
 systemCheckReturnCode() {
@@ -23,8 +24,15 @@ systemCheckReturnCode() {
 
 systemGetVersion() {
 
-  echo "Lowbit Life - CLI (${systemVersion})"
+  echo "${systemName} (${systemVersion})"
   exit 0
+
+}
+
+systemHeader() {
+
+  echo ""
+
 }
 
 systemInstall() {

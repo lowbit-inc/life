@@ -6,7 +6,7 @@
 
 helpGet() {
 
-  echo -e "${colorBold}Lowbit Life - CLI${colorReset}"
+  echo -e "${colorBold}${systemName}${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
   echo -e "  ${colorBold}`basename $0`${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightCyan}object${colorReset}${colorDim}]${colorReset} ${colorUnderline}${colorLightMagenta}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightYellow}arguments${colorReset}${colorDim}]${colorReset}"
@@ -49,7 +49,24 @@ helpGet() {
   echo -e "  ${colorLightMagenta}install${colorReset}        ${colorDim}- Installs this CLI system-wide${colorReset}"
   echo -e "  ${colorLightMagenta}sync${colorReset}           ${colorDim}- Sync the backend (when supported)${colorReset}"
   echo -e "  ${colorLightMagenta}version${colorReset}        ${colorDim}- Prints the CLI version${colorReset}"
+
+  exit 0
+
+}
+
+helpGetInbox() {
+
+  echo -e "${colorBold}${systemName} (Inbox)${colorReset}"
   echo
+  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorLightCyan}inbox${colorReset} ${colorUnderline}${colorLightMagenta}command${colorReset}${colorDim} [${colorReset}${colorLightYellow}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
+  echo
+  echo -e "${colorBold}${colorLightGreen}Commands:${colorReset}"
+  echo -e "  ${colorLightMagenta}add ${colorLightYellow}item${colorReset}                 ${colorDim}- Add an item to the inbox${colorReset}"
+  echo -e "  ${colorLightMagenta}delete ${colorLightYellow}item${colorReset}              ${colorDim}- Delete an item from the inbox${colorReset}"
+  echo -e "  ${colorLightMagenta}list${colorReset}                     ${colorDim}- List inbox items${colorReset}"
+  echo -e "  ${colorLightMagenta}rename ${colorLightYellow}old_name new_name${colorReset} ${colorDim}- Rename an inbox item${colorReset}"
+
   exit 0
 
 }

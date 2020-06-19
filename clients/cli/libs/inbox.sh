@@ -63,7 +63,7 @@ inboxList() {
 inboxRouter() {
 
   if [ ! $1 ]; then
-    inboxShowUsage
+    helpGetInbox
   fi
 
   usrAction=$1
@@ -86,27 +86,11 @@ inboxRouter() {
       ;;
     "--help"|"-h"|"help")
       logPrint debug "Action => ${usrAction}"
-      inboxShowUsage
+      helpGetInbox
       ;;
     *)
       logPrint error "Unknown action '${usrAction}'"
       ;;
   esac
-
-}
-
-inboxShowUsage() {
-
-  echo -e "${colorBold}Lowbit Planner - Inbox${colorReset}"
-  echo
-  echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` inbox${colorReset} ${colorUnderline}${colorLightRed}action${colorReset}${colorDim} [${colorReset}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
-  echo
-  echo -e "${colorBold}${colorLightGreen}Actions:${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}add${colorReset} ${colorUnderline}item_name${colorReset}    ${colorDim}- Add an item to the inbox${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}delete${colorReset} ${colorUnderline}item_name${colorReset} ${colorDim}- Delete an item from the inbox${colorReset}"
-  echo -e "  ${colorUnderline}${colorLightRed}list${colorReset}             ${colorDim}- List inbox items${colorReset}"
-  echo
-  exit 0
 
 }

@@ -26,6 +26,9 @@ case "${usrCommand}" in
   "help"|"--help"|"-h")
     helpGet
     ;;
+  "inbox")
+    nextHop="inboxRouter"
+    ;;
   "install")
     systemInstall
     ;;
@@ -47,3 +50,7 @@ configCheck
 
 # Backend
 backendCheck
+
+# Calling next hop and passing all user arguments
+logPrint debug "Calling next hop => ${nextHop}"
+"${nextHop}" "${@}"
