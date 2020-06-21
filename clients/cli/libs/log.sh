@@ -17,6 +17,7 @@ logPrint() {
       ;;
     "error")
       echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorLightRed}error${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"
+      exit 1
       ;;
     "info")
       echo -e "${colorDarkGray}[`date +'%Y-%m-%d %H:%M:%S'`${colorDarkGray}] [${colorLightGreen}info ${colorReset}${colorDarkGray}]${colorReset} ${thisLogString}"

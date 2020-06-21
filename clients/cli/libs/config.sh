@@ -4,10 +4,10 @@
 # Config #
 ##########
 
-configDirName="${HOME}/.lowbit/life/cli"
-configFileName="lowbit-life-cli.cfg"
+configDirName="${HOME}/.lowbit/life"
+configFileName="lowbit-life.cfg"
 configPath="${configDirName}/${configFileName}"
-configTempFile="/tmp/lowbit-life-cli.cfg"
+configTempFile="/tmp/lowbit-life.cfg"
 
 configAssistant() {
 
@@ -23,11 +23,12 @@ configAssistant() {
   logPrint debug "Initializing temporary config file"
   echo "# Lowbit Life - CLI - Config" > "${configTempFile}"
 
-  # Question 1 - Backend type
-  logPrint user "Question: Which backend type would you like to use?"
+  # Question 1/4 - Backend type
+  logPrint user "Question 1/4: Which backend type would you like to use?"
+  logPrint info "Valid options: api, file, git"
   while [ true ] ; do
     unset usrAnswer
-    read -p "Answer (valid options: api, file, git) => " usrAnswer
+    read -p "Answer => " usrAnswer
 
     case "${usrAnswer}" in
       "api")
@@ -43,21 +44,21 @@ configAssistant() {
         break
         ;;
       *)
-        logPrint error "Invalid answer - Try again..."
+        logPrint warn "Invalid answer - Try again..."
         ;;
     esac
 
   done
 
-  # Question 2 - Backend URI
-  logPrint user "Question: What is your backend URI?"
+  # Question 2/4 - Backend URI
+  logPrint user "Question 2/4: What is your backend URI?"
   while [ true ] ; do
     unset usrAnswer
     read -p "Answer => " usrAnswer
 
     case "${usrAnswer}" in
       "")
-        logPrint error "Invalid answer - Try again..."
+        logPrint warn "Invalid answer - Try again..."
         ;;
       *)
         echo "uri=${usrAnswer}" >> "${configTempFile}"
@@ -67,14 +68,14 @@ configAssistant() {
 
   done
 
-  # Question 3 - Backend username
-  logPrint user "Question: What is your backend username?"
+  # Question 3/4 - Backend username
+  logPrint user "Question 3/4: What is your backend username?"
   unset usrAnswer
   read -p "Answer (leave blank for none) => " usrAnswer
   echo "username=${usrAnswer}" >> "${configTempFile}"
 
-  # Question 4 - Backend password
-  logPrint user "Question: What is your backend password?"
+  # Question 4/4 - Backend password
+  logPrint user "Question 4/4: What is your backend password?"
   unset usrAnswer
   read -p "Answer (leave blank for none) => " usrAnswer
   echo "password=${usrAnswer}" >> "${configTempFile}"

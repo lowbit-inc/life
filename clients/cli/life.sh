@@ -48,8 +48,19 @@ esac
 # Config
 configCheck
 
-# Backend
-backendCheck
+# Sourcing backend lib
+if source "./backends/${usrConfigBackend}.sh" > /dev/null 2>&1 ; then
+  logPrint debug "Backend lib loaded => ${usrConfigBackend}"
+else
+  logPrint error "Failed to load the backend lib. Please, run '`basename $0` config' and follow the instructions to be able to use the CLI."
+fi
+
+# Checking backend
+if backendCheck; then
+  logPrint debug "Backend checked"
+else
+  logPrint error "Failed to check backend"
+fi
 
 # Calling next hop and passing all user arguments
 logPrint debug "Calling next hop => ${nextHop}"
