@@ -23,30 +23,52 @@ configAssistant() {
   logPrint debug "Initializing temporary config file"
   echo "# Lowbit Life - CLI - Config" > "${configTempFile}"
 
+  # Creating an array with possible backends
+  possibleBackends=()
+  for backend in `ls -1 ./backends/*.sh` ; do
+    possibleBackends+=(`echo $backend | cut -d '/' -f 3 | tr -d '.sh'`)
+  done
+
   # Question 1/4 - Backend type
   logPrint user "Question 1/4: Which backend type would you like to use?"
-  logPrint info "Valid options: api, file, git"
+  logPrint info "Valid options: `echo ${possibleBackends[@]}`"
+
   while [ true ] ; do
     unset usrAnswer
     read -p "Answer => " usrAnswer
 
-    case "${usrAnswer}" in
-      "api")
+    for backend in ${possibleBackends[@]} ; do
+      if [ "${usrAnswer}" == "${backend}" ] ; then
         echo "backend=${usrAnswer}" >> "${configTempFile}"
-        break
-        ;;
-      "file")
-        echo "backend=${usrAnswer}" >> "${configTempFile}"
-        break
-        ;;
-      "git")
-        echo "backend=${usrAnswer}" >> "${configTempFile}"
-        break
-        ;;
-      *)
-        logPrint warn "Invalid answer - Try again..."
-        ;;
-    esac
+        backendConfigured="true"
+      fi
+    done
+
+    if [[ "${backendConfigured}" == "true" ]]; then
+      break
+    else
+      logPrint warn "Invalid answer - Try again..."
+    fi
+
+    # exit 0
+    
+    # case "${usrAnswer}" in
+    #   "api")
+    #     echo "backend=${usrAnswer}" >> "${configTempFile}"
+    #     break
+    #     ;;
+    #   "file")
+    #     echo "backend=${usrAnswer}" >> "${configTempFile}"
+    #     break
+    #     ;;
+    #   "git")
+    #     echo "backend=${usrAnswer}" >> "${configTempFile}"
+    #     break
+    #     ;;
+    #   *)
+    #     logPrint warn "Invalid answer - Try again..."
+    #     ;;
+    # esac
 
   done
 
