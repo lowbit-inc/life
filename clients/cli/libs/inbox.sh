@@ -6,27 +6,36 @@
 
 inboxAdd() {
 
-  logPrint debug "Inbox Add"
+  # Input args
+  inputGet string "Item name" "${@}" ; shift ; thisInboxItemName="${inputReturn}"
 
-  if [ "${1}" ]; then
-    thisInboxItemName="${@}"  ; logPrint debug "${thisInboxItemName}"
-  else
-    logPrint error "Missing inbox item name"
-    return 1
-  fi
+  # if [ "${1}" ]; then
 
-  if databaseTableCheckEntryExists inbox ".|${thisInboxItemName}$" ; then
-    logPrint error "Inbox item already exists: '${thisInboxItemName}'"
-    return 1
-  fi
+  #   thisInboxItemName="${@}" ; shift
+  #   if ! validateString "${thisInboxItemName}" ; then
+  #     logPrint error "Invalid inbox item name"
+  #   fi
+  
+  # else
+  #   inputAskString "Inbox item name" ; thisInboxItemName="${inputUserAnswer}"
+  # fi
 
-  if databaseTableInsert inbox "=>" "`timestampGetNow`" "${thisInboxItemName}" ; then
-    logPrint info "New inbox item: '${thisInboxItemName}'"
-    return 0
-  else
-    logPrint error "Failed to add inbox item: '${thisInboxItemName}'"
-    return 1
-  fi
+  # logPrint debug "Inbox item => ${thisInboxItemName}"
+
+  exit 0
+
+  # if databaseTableCheckEntryExists inbox ".|${thisInboxItemName}$" ; then
+  #   logPrint error "Inbox item already exists: '${thisInboxItemName}'"
+  #   return 1
+  # fi
+
+  # if databaseTableInsert inbox "=>" "`timestampGetNow`" "${thisInboxItemName}" ; then
+  #   logPrint info "New inbox item: '${thisInboxItemName}'"
+  #   return 0
+  # else
+  #   logPrint error "Failed to add inbox item: '${thisInboxItemName}'"
+  #   return 1
+  # fi
 
 }
 
@@ -62,35 +71,32 @@ inboxList() {
 
 inboxRouter() {
 
-  if [ ! $1 ]; then
+  if [ $1 ]; then
+    usrAction=$1 ; shift ; logPrint debug "Action => ${usrAction}"
+  else
     helpGetInbox
   fi
 
-  usrAction=$1
-
   case ${usrAction} in
     "add")
-      logPrint debug "Action => ${usrAction}"
-      shift
       inboxAdd "${@}"
       ;;
-    "delete")
-      logPrint debug "Action => ${usrAction}"
-      shift
-      inboxDelete "${@}"
-      ;;
-    "list")
-      logPrint debug "Action => ${usrAction}"
-      shift
-      inboxList
-      ;;
-    "--help"|"-h"|"help")
-      logPrint debug "Action => ${usrAction}"
+    # "delete")
+    #   logPrint debug "Action => ${usrAction}"
+    #   shift
+    #   inboxDelete "${@}"
+    #   ;;
+    "help"|"--help"|"-h")
       helpGetInbox
       ;;
+    # "list")
+    #   logPrint debug "Action => ${usrAction}"
+    #   shift
+    #   inboxList
+    #   ;;
     *)
       logPrint error "Unknown action '${usrAction}'"
-      ;;
+    #   ;;
   esac
 
 }

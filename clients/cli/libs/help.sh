@@ -9,7 +9,7 @@ helpGet() {
   echo -e "${colorBold}${systemName}${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
-  echo -e "  ${colorBold}`basename $0`${colorReset} ${colorUnderline}${colorLightCyan}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightMagenta}subcommand${colorReset}${colorDim}]${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightYellow}arguments${colorReset}${colorDim}]${colorReset}"
+  echo -e "  ${colorBold}`basename $0`${colorReset} ${colorUnderline}${colorLightCyan}command${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightMagenta}action${colorReset}${colorDim}]${colorReset} ${colorDim}[${colorReset}${colorUnderline}${colorLightYellow}arguments${colorReset}${colorDim}]${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Cash commands:${colorReset}"
   echo -e "  ${colorLightCyan}account${colorReset}        ${colorDim}- Account operations${colorReset}"
@@ -59,9 +59,9 @@ helpGetInbox() {
   echo -e "${colorBold}${systemName} (Inbox)${colorReset}"
   echo
   echo -e "${colorBold}${colorLightGreen}Usage:${colorReset}"
-  echo -e "  ${colorBold}`basename $0` ${colorLightCyan}inbox${colorReset} ${colorUnderline}${colorLightMagenta}subcommand${colorReset}${colorDim} [${colorReset}${colorLightYellow}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
+  echo -e "  ${colorBold}`basename $0` ${colorLightCyan}inbox${colorReset} ${colorUnderline}${colorLightMagenta}action${colorReset}${colorDim} [${colorReset}${colorLightYellow}${colorUnderline}arguments${colorReset}${colorDim}]${colorReset}"
   echo
-  echo -e "${colorBold}${colorLightGreen}Commands:${colorReset}"
+  echo -e "${colorBold}${colorLightGreen}Actions:${colorReset}"
   echo -e "  ${colorLightMagenta}add ${colorLightYellow}item${colorReset}                 ${colorDim}- Add an item to the inbox${colorReset}"
   echo -e "  ${colorLightMagenta}delete ${colorLightYellow}item${colorReset}              ${colorDim}- Delete an item from the inbox${colorReset}"
   echo -e "  ${colorLightMagenta}list${colorReset}                     ${colorDim}- List inbox items${colorReset}"

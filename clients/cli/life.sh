@@ -19,6 +19,7 @@ else
   helpGet
 fi
 
+# Main Router
 case "${usrCommand}" in
   "config")
     configAssistant
