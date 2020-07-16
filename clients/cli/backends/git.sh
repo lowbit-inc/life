@@ -9,7 +9,7 @@ backendPath="${HOME}/.lowbit/life/backend"
 backendInitialize() {
 
   # Inbox
-  echo "" > "${backendPath}/inbox.csv"
+  echo "item_name,created_at" > "${backendPath}/inbox.csv"
 
 }
 

@@ -9,19 +9,6 @@ inboxAdd() {
   # Input args
   inputGet string "Item name" "${@}" ; shift ; thisInboxItemName="${inputReturn}"
 
-  # if [ "${1}" ]; then
-
-  #   thisInboxItemName="${@}" ; shift
-  #   if ! validateString "${thisInboxItemName}" ; then
-  #     logPrint error "Invalid inbox item name"
-  #   fi
-  
-  # else
-  #   inputAskString "Inbox item name" ; thisInboxItemName="${inputUserAnswer}"
-  # fi
-
-  # logPrint debug "Inbox item => ${thisInboxItemName}"
-
   exit 0
 
   # if databaseTableCheckEntryExists inbox ".|${thisInboxItemName}$" ; then
